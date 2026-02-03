@@ -1,0 +1,326 @@
+########################################################################
+# Makefile for the Vrui example programs.
+# Copyright (c) 2003-2025 Oliver Kreylos
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or (at
+# your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+########################################################################
+
+# Directory containing the Vrui build system. The directory below
+# matches the default Vrui installation; if Vrui's installation
+# directory was changed during Vrui's installation, the directory below
+# must be adapted.
+VRUI_MAKEDIR = /usr/local/share/Vrui-14.0/make
+
+# Base installation directory for the example programs. If this is set
+# to the default of $(PROJECT_ROOT), the example programs do not have to
+# be installed to be run. Created executables and resources will be
+# installed in the bin and share directories under the given base
+# directory, respectively.
+# Important note: Do not use ~ as an abbreviation for the user's home
+# directory here; use $(HOME) instead.
+INSTALLDIR = $(PROJECT_ROOT)
+
+########################################################################
+# Everything below here should not have to be changed
+########################################################################
+
+# Name of the package
+PROJECT_NAME = VruiExamplePrograms
+PROJECT_DISPLAYNAME = Vrui Example Programs
+
+# Version number for installation subdirectories. This is used to keep
+# subsequent release versions of the Vrui Example Programs from
+# clobbering each other. The value should be identical to the
+# major.minor version number found in VERSION in the root package
+# directory.
+PROJECT_MAJOR = 13
+PROJECT_MINOR = 1
+
+# Include definitions for the system environment and system-provided
+# packages
+include $(VRUI_MAKEDIR)/SystemDefinitions
+include $(VRUI_MAKEDIR)/Packages.System
+include $(VRUI_MAKEDIR)/Configuration.Vrui
+include $(VRUI_MAKEDIR)/Packages.Vrui
+
+# Check if Vrui's collaboration infrastructure is installed
+-include $(VRUI_MAKEDIR)/Configuration.Collaboration
+-include $(VRUI_MAKEDIR)/Packages.Collaboration
+ifdef COLLABORATION_VERSION
+  HAVE_COLLABORATION = 1
+else
+  HAVE_COLLABORATION = 0
+endif
+
+########################################################################
+# List common packages used by all components of this project
+# (Supported packages can be found in $(VRUI_MAKEDIR)/Packages.*)
+########################################################################
+
+# Attempt to auto-detect the presence of the xine multimedia framework
+# to build a Vrui-based video player:
+XINE_BASEDIR = $(shell $(VRUI_MAKEDIR)/FindLibrary.sh xine.h libxine.$(DSOFILEEXT) $(INCLUDEEXT) $(LIBEXT) $(SYSTEM_PACKAGE_SEARCH_PATHS))
+XINE_DEPENDS = 
+XINE_INCLUDE = -I$(XINE_BASEDIR)/$(INCLUDEEXT)
+XINE_LIBDIR  = -L$(XINE_BASEDIR)/$(LIBEXT)
+XINE_LIBS    = -lxine
+
+ifneq ($(strip $(XINE_BASEDIR)),)
+  SYSTEM_HAVE_XINE = 1
+else
+  SYSTEM_HAVE_XINE = 0
+endif
+
+# Not all components use all of these, but some over-linking doesn't hurt:
+PACKAGES = MYVRUI MYGLGEOMETRY MYGLSUPPORT MYGLWRAPPERS MYGEOMETRY MYMATH MYMISC GL
+
+########################################################################
+# Specify all final targets
+#
+# Note: To build individual targets, run "make bin/<target name>"
+# instead of just "make <target name>."
+########################################################################
+
+EXECUTABLES = $(EXEDIR)/HelloVrui \
+              $(EXEDIR)/VruiDemo \
+              $(EXEDIR)/VruiDemoSmall \
+              $(EXEDIR)/VruiGLTest \
+              $(EXEDIR)/VruiAppTemplate \
+              $(EXEDIR)/VruiLocatorDemo \
+              $(EXEDIR)/VruiEventToolDemo \
+              $(EXEDIR)/VruiCustomToolDemo \
+              $(EXEDIR)/FileSelection \
+              $(EXEDIR)/VruiCalibrator \
+              $(EXEDIR)/DrawEnvironment \
+              $(EXEDIR)/PrecisionTest \
+              $(EXEDIR)/VisionTest \
+              $(EXEDIR)/VruiSceneGraphDemo \
+              $(EXEDIR)/ImageViewer \
+              $(EXEDIR)/ImageSequenceViewer \
+              $(EXEDIR)/VideoViewer \
+              $(EXEDIR)/SceneGraphViewer \
+              $(EXEDIR)/Animation \
+              $(EXEDIR)/Instancing \
+              $(EXEDIR)/ShowEarthModel \
+              $(EXEDIR)/Jello \
+              $(EXEDIR)/ClusterJello \
+              $(EXEDIR)/SharedJelloServer \
+              $(EXEDIR)/SharedJello \
+              $(EXEDIR)/VirtualClay
+ifneq ($(SYSTEM_HAVE_OPENAL),0)
+  EXECUTABLES += $(EXEDIR)/VruiSoundTest
+endif
+ifneq ($(SYSTEM_HAVE_XINE),0)
+  EXECUTABLES += $(EXEDIR)/VruiXine
+endif
+
+ALL = $(EXECUTABLES)
+
+.PHONY: all
+all: $(ALL)
+
+########################################################################
+# Specify other actions to be performed on a `make clean'
+########################################################################
+
+.PHONY: extraclean
+extraclean:
+
+.PHONY: extrasqueakyclean
+extrasqueakyclean:
+
+# Include basic makefile
+include $(VRUI_MAKEDIR)/BasicMakefile
+
+########################################################################
+# Specify build rules for executables
+########################################################################
+
+#
+# Simple single-source demo programs:
+#
+
+$(EXEDIR)/HelloVrui: $(OBJDIR)/HelloVrui.o
+
+$(EXEDIR)/VruiDemo: $(OBJDIR)/VruiDemo.o
+
+$(EXEDIR)/VruiDemoSmall: $(OBJDIR)/VruiDemoSmall.o
+
+$(EXEDIR)/VruiGLTest: $(OBJDIR)/VruiGLTest.o
+
+$(EXEDIR)/VruiAppTemplate: PACKAGES += MYGLMOTIF
+$(EXEDIR)/VruiAppTemplate: $(OBJDIR)/VruiAppTemplate.o
+
+$(EXEDIR)/VruiLocatorDemo: $(OBJDIR)/VruiLocatorDemo.o
+
+$(EXEDIR)/VruiEventToolDemo: $(OBJDIR)/VruiEventToolDemo.o
+
+$(EXEDIR)/VruiCustomToolDemo: $(OBJDIR)/VruiCustomToolDemo.o
+
+$(EXEDIR)/FileSelection: PACKAGES += MYGLMOTIF MYIO
+$(EXEDIR)/FileSelection: $(OBJDIR)/FileSelection.o
+
+$(EXEDIR)/VruiCalibrator: $(OBJDIR)/VruiCalibrator.o
+
+$(EXEDIR)/DrawEnvironment: $(OBJDIR)/DrawEnvironment.o
+
+$(EXEDIR)/PrecisionTest: $(OBJDIR)/PrecisionTest.o
+
+$(EXEDIR)/VisionTest: PACKAGES += MYGLMOTIF
+$(EXEDIR)/VisionTest: $(OBJDIR)/VisionTest.o
+
+$(EXEDIR)/VruiSceneGraphDemo: PACKAGES += MYSCENEGRAPH MYGLMOTIF
+$(EXEDIR)/VruiSceneGraphDemo: $(OBJDIR)/VruiSceneGraphDemo.o
+
+$(EXEDIR)/VruiSoundTest: PACKAGES += MYALSUPPORT MYSOUND MYIO
+$(EXEDIR)/VruiSoundTest: $(OBJDIR)/VruiSoundTest.o
+
+$(EXEDIR)/ImageViewer: PACKAGES += MYGLMOTIF MYIMAGES MYIO MYTHREADS
+$(EXEDIR)/ImageViewer: $(OBJDIR)/ImageViewer.o
+
+$(EXEDIR)/ImageSequenceViewer: PACKAGES += MYGLMOTIF MYIMAGES MYIO MYTHREADS
+$(EXEDIR)/ImageSequenceViewer: $(OBJDIR)/ImageSequenceViewer.o
+
+$(EXEDIR)/VideoViewer: PACKAGES += MYVIDEO MYGLMOTIF MYIMAGES VIBE
+$(EXEDIR)/VideoViewer: $(OBJDIR)/VideoViewer.o
+
+$(EXEDIR)/Animation: PACKAGES += MYTHREADS
+$(EXEDIR)/Animation: $(OBJDIR)/Animation.o
+
+$(OBJDIR)/Instancing.o: CFLAGS += -DSHADERDIR='"$(SHAREINSTALLDIR)/Shaders"'
+$(EXEDIR)/Instancing: $(OBJDIR)/Instancing.o
+
+#
+# A simple viewer for scene graphs
+#
+
+SCENEGRAPHVIEWER_SOURCES = SceneGraphViewerWalkNavigationTool.cpp \
+                           SceneGraphViewerTransformTool.cpp \
+                           SceneGraphViewerSurfaceTouchTransformTool.cpp \
+                           SceneGraphViewer.cpp
+
+$(EXEDIR)/SceneGraphViewer: PACKAGES += MYSCENEGRAPH MYGLMOTIF
+$(EXEDIR)/SceneGraphViewer: $(SCENEGRAPHVIEWER_SOURCES:%.cpp=$(OBJDIR)/%.o)
+
+#
+# ShowEarthModel, a viewer for earthquake catalogs and other assorted
+# Earth science data.
+#
+
+SHOWEARTHMODEL_SOURCES = EarthFunctions.cpp \
+                         PointSet.cpp \
+                         SeismicPath.cpp \
+                         EarthquakeSet.cpp \
+                         EarthquakeTool.cpp \
+                         EarthquakeQueryTool.cpp \
+                         ShowEarthModel.cpp
+
+$(OBJDIR)/ShowEarthModel.o: CFLAGS += -DSHOWEARTHMODEL_CONFIGDIR='"$(ETCINSTALLDIR)"' -DSHOWEARTHMODEL_APPNAME='"ShowEarthModel"' -DSHOWEARTHMODEL_IMAGEDIR='"$(SHAREINSTALLDIR)"'
+ifneq ($(HAVE_COLLABORATION),0)
+  $(OBJDIR)/ShowEarthModel.o:  CFLAGS += -DUSE_COLLABORATION=1
+  $(EXEDIR)/ShowEarthModel: PACKAGES += MYCOLLABORATION2CLIENT
+else
+  $(OBJDIR)/ShowEarthModel.o:  CFLAGS += -DUSE_COLLABORATION=0
+endif
+
+$(EXEDIR)/ShowEarthModel: PACKAGES += MYSCENEGRAPH MYGLMOTIF MYIMAGES MYIO
+$(EXEDIR)/ShowEarthModel: $(SHOWEARTHMODEL_SOURCES:%.cpp=$(OBJDIR)/%.o)
+
+#
+# There's always room for Jell-O!
+#
+
+# Simple version (single threaded, non-cluster aware, not shared):
+$(EXEDIR)/Jello: PACKAGES += MYGLMOTIF
+$(EXEDIR)/Jello: $(OBJDIR)/JelloAtom.o \
+                 $(OBJDIR)/JelloCrystal.o \
+                 $(OBJDIR)/JelloRenderer.o \
+                 $(OBJDIR)/Jello.o
+
+# Multithreaded and cluster-aware version:
+$(EXEDIR)/ClusterJello: PACKAGES += MYGLMOTIF MYCLUSTER MYTHREADS
+$(EXEDIR)/ClusterJello: $(OBJDIR)/JelloAtom.o \
+                        $(OBJDIR)/JelloCrystal.o \
+                        $(OBJDIR)/JelloRenderer.o \
+                        $(OBJDIR)/ClusterJello.o
+
+# Client/server distributed and collaborative version:
+# Override default package list -- the server does not need to link against Vrui
+$(EXEDIR)/SharedJelloServer: PACKAGES = MYGLGEOMETRY MYGEOMETRY MYMATH MYCOMM MYTHREADS MYMISC GL
+$(EXEDIR)/SharedJelloServer: $(OBJDIR)/JelloAtom.o \
+                             $(OBJDIR)/JelloCrystal.o \
+                             $(OBJDIR)/SharedJelloServer.o
+
+$(EXEDIR)/SharedJello: PACKAGES += MYGLMOTIF MYCOMM MYTHREADS
+$(EXEDIR)/SharedJello: $(OBJDIR)/JelloAtom.o \
+                       $(OBJDIR)/JelloCrystal.o \
+                       $(OBJDIR)/JelloRenderer.o \
+                       $(OBJDIR)/SharedJello.o
+
+#
+# Very simple virtual clay modeling application using a density volume
+# and interactive isosurface extraction:
+#
+
+$(EXEDIR)/VirtualClay: PACKAGES += MYGLMOTIF MYIO
+$(EXEDIR)/VirtualClay: $(OBJDIR)/EditableGrid.o \
+                       $(OBJDIR)/GridEditor.o
+
+#
+# A VR video viewer based on the xine multimedia framework:
+#
+
+$(EXEDIR)/VruiXine: PACKAGES += MYVIDEO MYGLMOTIF MYIMAGES MYIO MYTHREADS XINE
+$(EXEDIR)/VruiXine: $(OBJDIR)/VruiXine.o
+
+#
+# Installation rules
+#
+
+RESOURCES = $(PROJECT_SHAREDIR)/EarthTopography.ppm \
+            $(PROJECT_SHAREDIR)/EarthTopography.png
+
+#
+# Rule to install the example programs in a destination directory
+#
+
+install: $(ALL)
+	@echo Installing $(PROJECT_FULLDISPLAYNAME) in $(INSTALLDIR)...
+	@install -d $(EXECUTABLEINSTALLDIR)
+	@install $(EXECUTABLES) $(EXECUTABLEINSTALLDIR)
+	@install -d $(SHAREINSTALLDIR)
+	@install $(RESOURCES) $(SHAREINSTALLDIR)
+	@install -d $(SHAREINSTALLDIR)/Shaders
+	@install $(PROJECT_SHAREDIR)/Shaders/* $(SHAREINSTALLDIR)/Shaders
+
+#
+# Rule to install a "live" version of the Vrui Example Programs in the
+# chosen installation directory that automatically reflects changes made
+# to the Vrui Example Programs sources
+#
+
+devinstall:
+# Install all binaries in EXECUTABLEINSTALLDIR:
+	@echo Installing live version of $(PROJECT_FULLDISPLAYNAME) in $(INSTALLDIR)...
+	@echo Installing executables...
+	@mkdir -p $(EXECUTABLEINSTALLDIR)
+	@ln -sf $(EXECUTABLES:%=$(PROJECT_ROOT)/%) $(EXECUTABLEINSTALLDIR)
+# Install all resource files in SHAREINSTALLDIR:
+	@echo Installing resource files...
+	@mkdir -p $(SHAREINSTALLDIR)
+	@ln -sf $(RESOURCES:%=$(PROJECT_ROOT)/%) $(SHAREINSTALLDIR)
+	@mkdir -p $(SHAREINSTALLDIR)/Shaders
+	@ln -sf $(PROJECT_ROOT)/$(PROJECT_SHAREDIR)/Shaders/* $(SHAREINSTALLDIR)/Shaders
