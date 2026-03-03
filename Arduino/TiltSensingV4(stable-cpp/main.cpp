@@ -4,7 +4,7 @@
 
 //IMPORTANT: Check the USB port name! 
 //usually "/dev/ttyUSB0"
-const std::string PORT = "/dev/ttyACM0"; 
+const std::string PORT = "/dev/ttyUSB0"; 
 
 int main() {
     std::cout << "Starting Sensor Program..." << std::endl;
@@ -23,7 +23,7 @@ int main() {
         }
 
         // Simulate doing other work
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     imu.stop();

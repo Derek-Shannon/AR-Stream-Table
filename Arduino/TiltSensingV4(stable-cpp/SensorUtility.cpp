@@ -117,6 +117,7 @@ void SensorUtility::loop() {
     while (running) {
         if (serialFd == -1) {
             // Attempt to reconnect every second
+            
             if (openSerial()) {
                 std::cout << "[SensorUtility] Connected to " << portName << std::endl;
             } else {
