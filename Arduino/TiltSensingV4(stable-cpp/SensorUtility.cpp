@@ -50,10 +50,12 @@ float SensorUtility::getPitch() {
 }
 
 bool SensorUtility::openSerial() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     serialFd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
     if (serialFd == -1) {
         return false; 
     }
+    tcflush(serialFd, TCIOFLUSH);
 
     // Configure Serial Port
     struct termios options;
@@ -84,6 +86,7 @@ void SensorUtility::closeSerial() {
 }
 
 void SensorUtility::parseData(std::string data) {
+    
     // Expected format: "<Pitch,Roll>"
     size_t start = data.find('<');
     size_t end = data.find('>');
@@ -130,10 +133,8 @@ void SensorUtility::loop() {
 
         // Read data
         int n = read(serialFd, buffer, sizeof(buffer) - 1);
-        
         if (n > 0) {
             buffer[n] = 0; // Null terminate
-            std::cout << "[DEBUG] Raw Data Received: " << buffer << std::endl;
             std::string chunk(buffer);
             incompleteLine += chunk;
 
@@ -143,10 +144,17 @@ void SensorUtility::loop() {
                 parseData(line);
                 incompleteLine.erase(0, pos + 1);
             }
-        } else if (n < 0 && errno != EAGAIN) {
-             // IO Error (unplugged)
-             std::cerr << "[SensorUtility] Connection lost. Retrying..." << std::endl;
-             closeSerial();
+        } else if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // This is normal, do nothing.
+            } else {
+                std::cerr << "[DEBUG] Read error detected! Errno: " << errno << " (" << strerror(errno) << ")" << std::endl;
+                closeSerial();
+            }
+        } else{
+            std::cerr << "[DEBUG] DETACHED n=0"<< std::endl;
+            closeSerial();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
 
         // Small sleep to lower CPU usage
