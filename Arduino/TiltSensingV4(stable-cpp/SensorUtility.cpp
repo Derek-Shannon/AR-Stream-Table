@@ -117,10 +117,12 @@ void SensorUtility::loop() {
     while (running) {
         if (serialFd == -1) {
             // Attempt to reconnect every second
-            
+            std::cout << "[DEBUG] Attempting to open serial port..." << std::endl;
             if (openSerial()) {
+                std::cout << "[DEBUG] Successfully opened port!" << std::endl;
                 std::cout << "[SensorUtility] Connected to " << portName << std::endl;
             } else {
+                std::cerr << "[DEBUG] ERROR: Could not open port." << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 continue;
             }
@@ -131,6 +133,7 @@ void SensorUtility::loop() {
         
         if (n > 0) {
             buffer[n] = 0; // Null terminate
+            std::cout << "[DEBUG] Raw Data Received: " << buffer << std::endl;
             std::string chunk(buffer);
             incompleteLine += chunk;
 
