@@ -11,7 +11,8 @@ bash InstallPrerequisites.sh
 ### To download/compile software
 <p>
 cd /home/streamy/Desktop/streamy-software<br>
-sudo make
+sudo make <br>
+sudo make installudevrules
 </p>
 
 ### To Run software
