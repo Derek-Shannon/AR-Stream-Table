@@ -22,8 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #ifndef CONFIG_INCLUDED
 #define CONFIG_INCLUDED
 
-#define CONFIG_CONFIGDIR "/home/streamy/Desktop/streamy-software/arsandbox/etc"
-#define CONFIG_SHADERDIR "/home/streamy/Desktop/streamy-software/arsandbox/share/Shaders"
+#define CONFIG_CONFIGDIR "/home/streamy/Desktop/AR-Stream-Table/arsandbox/etc"
+#define CONFIG_SHADERDIR "/home/streamy/Desktop/AR-Stream-Table/arsandbox/share/Shaders"
 
 #define CONFIG_DEFAULTCONFIGFILENAME "SARndbox.cfg"
 #define CONFIG_DEFAULTBOXLAYOUTFILENAME "BoxLayout.txt"

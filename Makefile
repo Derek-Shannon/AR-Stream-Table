@@ -17,6 +17,8 @@ vrui:
 	# Vrui often needs a config if it's a fresh download
 	$(MAKE) -C $(VRUI_DIR) config
 	$(MAKE) -j$(nproc) -C $(VRUI_DIR)
+	@echo "--- Installing Vrui ---"
+	$(MAKE) -C $(VRUI_DIR) install
 
 kinect: vrui
 	@echo "--- Building Kinect Extensions ---"
@@ -24,6 +26,8 @@ kinect: vrui
 	$(MAKE) -C $(KINECT_DIR) PROJECT_ROOT=$(shell pwd)/$(KINECT_DIR) config
 	# Then compile everything at high speed
 	$(MAKE) -j$(nproc) -C $(KINECT_DIR) PROJECT_ROOT=$(shell pwd)/$(KINECT_DIR)
+	@echo "--- Installing Kinect ---"
+	$(MAKE) -C $(KINECT_DIR) install
 
 sandbox: kinect
 	@echo "--- Building AR Sandbox ---"
@@ -31,6 +35,9 @@ sandbox: kinect
 	$(MAKE) -j$(nproc) -C $(SANDBOX_DIR)
 
 clean:
-	$(MAKE) -C $(VRUI_DIR) clean
 	$(MAKE) -C $(KINECT_DIR) clean
+	$(MAKE) -C $(KINECT_DIR) uninstall
 	$(MAKE) -C $(SANDBOX_DIR) clean
+	$(MAKE) -C $(VRUI_DIR) clean
+	$(MAKE) -C $(VRUI_DIR) uninstall
+	
