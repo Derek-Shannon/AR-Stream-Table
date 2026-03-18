@@ -35,7 +35,7 @@ void SensorUtility::stop() {
 bool SensorUtility::isActive() {
     std::lock_guard<std::mutex> lock(dataMutex);
     auto now = std::chrono::steady_clock::now();
-    // Consider active if we heard from Arduino in the last 1000ms
+    //active if we heard from Arduino in the last 1000ms
     return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastDataTime).count() < 1000;
 }
 
@@ -50,12 +50,11 @@ float SensorUtility::getPitch() {
 }
 
 bool SensorUtility::openSerial() {
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    serialFd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
+    serialFd = open(portName.c_str(), O_RDWR | O_NOCTTY);
     if (serialFd == -1) {
+        std::cerr << "[ERROR] Failed to open " << portName << ": " << strerror(errno) << std::endl;
         return false; 
     }
-    tcflush(serialFd, TCIOFLUSH);
 
     // Configure Serial Port
     struct termios options;
@@ -63,17 +62,22 @@ bool SensorUtility::openSerial() {
     cfsetispeed(&options, B115200);
     cfsetospeed(&options, B115200);
     
-    options.c_cflag |= (CLOCAL | CREAD); // Enable receiver, ignore modem lines
-    options.c_cflag &= ~CSIZE;
-    options.c_cflag |= CS8;              // 8-bit characters
-    options.c_cflag &= ~PARENB;          // No parity
-    options.c_cflag &= ~CSTOPB;          // 1 stop bit
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // Raw input
+    options.c_cflag &= ~(PARENB | CSTOPB | CSIZE);
+    options.c_cflag |= (CLOCAL | CREAD | CS8); 
+    
+    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); 
+    options.c_iflag &= ~(IXON | IXOFF | IXANY | ICRNL); 
+    options.c_oflag &= ~OPOST;
+
+    // Set a 1-second read timeout
+    options.c_cc[VMIN] = 0;   
+    options.c_cc[VTIME] = 10; 
 
     tcsetattr(serialFd, TCSANOW, &options);
     
-    // Set non-blocking behavior properly
-    fcntl(serialFd, F_SETFL, FNDELAY);
+    //wait
+    std::this_thread::sleep_for(std::chrono::seconds(2)); 
+    tcflush(serialFd, TCIOFLUSH);
     
     return true;
 }
@@ -131,7 +135,7 @@ void SensorUtility::loop() {
             }
         }
 
-        // Read data
+        //Block for up to 1 second waiting for data
         int n = read(serialFd, buffer, sizeof(buffer) - 1);
         if (n > 0) {
             buffer[n] = 0; // Null terminate
@@ -154,10 +158,6 @@ void SensorUtility::loop() {
         } else{
             std::cerr << "[DEBUG] DETACHED n=0"<< std::endl;
             closeSerial();
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
-
-        // Small sleep to lower CPU usage
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

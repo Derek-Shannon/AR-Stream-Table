@@ -1,1 +1,1 @@
-g++ main.cpp SensorUtility.cpp -o sensor_app -lpthread
+g++ ExampleTest.cpp SensorUtility.cpp -o sensorApp -lpthread
