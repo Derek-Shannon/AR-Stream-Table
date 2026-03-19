@@ -1,3 +1,4 @@
+
 ########################################################################
 # Makefile for the Augmented Reality Sandbox.
 # Copyright (c) 2012-2026 Oliver Kreylos
@@ -193,11 +194,12 @@ SARNDBOX_SOURCES = FrameFilter.cpp \
                    DEM.cpp \
                    DEMTool.cpp \
                    BathymetrySaverTool.cpp \
+                   UserInterface/ControlWindow.cpp \
                    Sandbox.cpp
 
 $(SARNDBOX_SOURCES:%.cpp=$(OBJDIR)/%.o): | $(DEPDIR)/config
 
-$(EXEDIR)/SARndbox: PACKAGES += MYKINECT MYVIDEO MYGLMOTIF MYIMAGES MYGLSUPPORT MYGLWRAPPERS MYIO TIFF
+$(EXEDIR)/SARndbox: PACKAGES += MYKINECT MYVIDEO MYGLMOTIF MYIMAGES MYGLSUPPORT MYGLWRAPPERS MYIO TIFF X11
 $(EXEDIR)/SARndbox: $(SARNDBOX_SOURCES:%.cpp=$(OBJDIR)/%.o)
 .PHONY: SARndbox
 SARndbox: $(EXEDIR)/SARndbox
