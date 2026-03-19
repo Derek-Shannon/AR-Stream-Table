@@ -38,12 +38,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <GLMotif/RadioBox.h>
 #include <GLMotif/TextFieldSlider.h>
 #include <GLMotif/FileSelectionHelper.h>
+#include <GLMotif/Button.h>
 #include <Vrui/Tool.h>
 #include <Vrui/GenericToolFactory.h>
 #include <Vrui/TransparentObject.h>
 #include <Vrui/Application.h>
 #include <Kinect/FrameBuffer.h>
 #include <Kinect/FrameSource.h>
+#include <X11/Xlib.h>
+#include <string>
 
 #include "Types.h"
 
@@ -58,6 +61,7 @@ class PopupMenu;
 class PopupWindow;
 class TextField;
 }
+class ControlWindow;
 namespace Vrui {
 class Lightsource;
 }
@@ -231,6 +235,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	GLMotif::ToggleButton* pauseUpdatesToggle;
 	GLMotif::FileSelectionHelper gridPropertyFileHelper; // Helper object to load/save grid property from/to files
 	GLMotif::PopupWindow* waterControlDialog;
+	ControlWindow* controlWindow;
 	GLMotif::TextFieldSlider* snowLineSlider;
 	GLMotif::TextFieldSlider* snowMeltSlider;
 	GLMotif::TextFieldSlider* waterSpeedSlider;
@@ -240,7 +245,11 @@ class Sandbox:public Vrui::Application,public GLObject
 	GLMotif::TextFieldSlider* waterAttenuationSlider;
 	GLMotif::TextFieldSlider* waterRoughnessSlider;
 	GLMotif::TextFieldSlider* waterAbsorptionSlider;
-	int controlPipeFd; // File descriptor of an optional named pipe to send control commands to a running AR Sandbox
+	int controlPipeFd; // File desbool exportScreenshotPending; // Flag whether a topography screenshot has been requested
+	bool exportScreenshotPending; // Flag whether a topography screenshot has been requested
+	double exportScreenshotRequestTime; // Application time when the current screenshot request was started
+	double exportStatusTime; // Application time when the current success/error export status was shown
+	std::string exportScreenshotFileName; // Path of the current screenshot request
 	
 	/* Private methods: */
 	void rawDepthFrameDispatcher(const Kinect::FrameBuffer& frameBuffer); // Callback receiving raw depth frames from the Kinect camera; forwards them to the frame filter and rain maker objects
@@ -252,6 +261,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	void loadGridPropertyFileCallback(GLMotif::FileSelectionDialog::OKCallbackData* cbData);
 	void saveGridPropertyFileCallback(GLMotif::FileSelectionDialog::OKCallbackData* cbData);
 	void showWaterControlDialogCallback(Misc::CallbackData* cbData);
+	void closeCallback(Misc::CallbackData* cbData);
 	void snowLineSliderCallback(GLMotif::TextFieldSlider::ValueChangedCallbackData* cbData);
 	void snowMeltSliderCallback(GLMotif::TextFieldSlider::ValueChangedCallbackData* cbData);
 	void waterSpeedSliderCallback(GLMotif::TextFieldSlider::ValueChangedCallbackData* cbData);
@@ -262,7 +272,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	void waterAbsorptionApplyCallback(Misc::CallbackData* cbData);
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createWaterControlDialog(void);
-	
+	ControlWindow* createControlWindow(void);
 	/* Constructors and destructors: */
 	public:
 	Sandbox(int& argc,char**& argv);

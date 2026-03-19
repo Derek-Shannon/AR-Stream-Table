@@ -25,9 +25,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <time.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <GLMotif/Button.h>
+#include <GLMotif/RowColumn.h>
+
+#ifdef Complex
+#undef Complex
+#endif
+
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -81,6 +90,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <Vrui/LightsourceManager.h>
 #include <Vrui/Viewer.h>
 #include <Vrui/ToolManager.h>
+#include <Vrui/VRWindow.h>
 #include <Vrui/DisplayState.h>
 #include <Kinect/FileFrameSource.h>
 #include <Kinect/MultiplexedFrameSource.h>
@@ -109,6 +119,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include "LocalWaterTool.h"
 #include "DEMTool.h"
 #include "BathymetrySaverTool.h"
+#include "UserInterface/ControlWindow.h"
 
 #include "Config.h"
 
@@ -346,6 +357,8 @@ void Sandbox::addWater(GLContextData& contextData) const
 void Sandbox::pauseUpdatesCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData)
 	{
 	pauseUpdates=cbData->set;
+	if (controlWindow!=0)
+		controlWindow->setFreezeState(pauseUpdates);
 	}
 
 void Sandbox::loadGridPropertyFileCallback(GLMotif::FileSelectionDialog::OKCallbackData* cbData)
@@ -361,6 +374,10 @@ void Sandbox::saveGridPropertyFileCallback(GLMotif::FileSelectionDialog::OKCallb
 void Sandbox::showWaterControlDialogCallback(Misc::CallbackData* cbData)
 	{
 	Vrui::popupPrimaryWidget(waterControlDialog);
+	}
+void Sandbox::closeCallback(Misc::CallbackData* cbData)
+	{
+	Vrui::shutdown();
 	}
 
 void Sandbox::snowLineSliderCallback(GLMotif::TextFieldSlider::ValueChangedCallbackData* cbData)
@@ -604,6 +621,12 @@ GLMotif::PopupWindow* Sandbox::createWaterControlDialog(void)
 	return waterControlDialogPopup;
 	}
 
+ControlWindow* Sandbox::createControlWindow(void)
+	{
+	return new ControlWindow();
+	}
+
+
 namespace {
 
 /****************
@@ -739,6 +762,8 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 gridPropertyFileHelper(Vrui::getWidgetManager(),"GridProperty.tiff",".tif;.tiff"),
 	 waterControlDialog(0),
 	 snowLineSlider(0),waterSpeedSlider(0),waterMaxStepsSlider(0),frameRateTextField(0),waterAttenuationSlider(0),
+	 controlWindow(0),
+	 exportScreenshotPending(false),exportScreenshotRequestTime(0.0),exportStatusTime(-1.0),exportScreenshotFileName(),
 	 controlPipeFd(-1)
 	{
 	/* Read the sandbox's default configuration parameters: */
@@ -1264,6 +1289,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	Vrui::setMainMenu(mainMenu);
 	if(waterTable!=0)
 		waterControlDialog=createWaterControlDialog();
+	controlWindow=createControlWindow();
 	
 	/* Initialize the custom tool classes: */
 	GlobalWaterTool::initClass(*Vrui::getToolManager());
@@ -1308,6 +1334,7 @@ Sandbox::~Sandbox(void)
 	
 	delete mainMenu;
 	delete waterControlDialog;
+	delete controlWindow;
 	
 	close(controlPipeFd);
 	}
@@ -1372,7 +1399,90 @@ bool isToken(const std::string& token,const char* pattern)
 }
 
 void Sandbox::frame(void)
-	{
+	{	
+		if(controlWindow!=0)
+		{
+		const double currentFrameTime=Vrui::getCurrentFrameTime();
+		controlWindow->setCurrentFps(currentFrameTime>0?1/currentFrameTime:0);
+		if(controlWindow->processEvents())
+			Vrui::shutdown();
+		
+		if(controlWindow->getFreezeState()!=pauseUpdates)
+			{
+			pauseUpdates=controlWindow->getFreezeState();
+			if(pauseUpdatesToggle!=0)
+				pauseUpdatesToggle->setToggle(pauseUpdates);
+			}
+		if(controlWindow->consumeExportRequest())
+			{
+			const char* screenshotDirectory="/home/streamy/Desktop/AR-Exports";
+			exportScreenshotPending=false;
+			exportStatusTime=-1.0;
+			if(access("/home/streamy/Desktop",W_OK)!=0)
+				{
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				exportStatusTime=Vrui::getApplicationTime();
+				}
+			else if(mkdir(screenshotDirectory,0755)!=0&&errno!=EEXIST)
+				{
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				exportStatusTime=Vrui::getApplicationTime();
+				}
+			else if(access(screenshotDirectory,W_OK)!=0||Vrui::getNumWindows()<=0||Vrui::getWindow(0)==0)
+				{
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				exportStatusTime=Vrui::getApplicationTime();
+				}
+			else
+				{
+				time_t rawTime=time(0);
+				struct tm timeParts;
+				char screenshotBaseName[64];
+				if(localtime_r(&rawTime,&timeParts)==0||strftime(screenshotBaseName,sizeof(screenshotBaseName),"%m-%d-%Y-%H-%M-%S.png",&timeParts)==0)
+					{
+					controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+					exportStatusTime=Vrui::getApplicationTime();
+					}
+				else
+					{
+					exportScreenshotFileName=screenshotDirectory;
+					exportScreenshotFileName.push_back('/');
+					exportScreenshotFileName.append(screenshotBaseName);
+					Vrui::getWindow(0)->requestScreenshot(exportScreenshotFileName.c_str());
+					Vrui::requestUpdate();
+					exportScreenshotPending=true;
+					exportScreenshotRequestTime=Vrui::getApplicationTime();
+					controlWindow->setExportStatus(ControlWindow::EXPORT_PENDING);
+					}
+				}
+			}
+		}
+
+	if(exportScreenshotPending)
+		{
+		struct stat screenshotStat;
+		if(stat(exportScreenshotFileName.c_str(),&screenshotStat)==0)
+			{
+			exportScreenshotPending=false;
+			exportStatusTime=Vrui::getApplicationTime();
+			if(controlWindow!=0)
+				controlWindow->setExportStatus(ControlWindow::EXPORT_SUCCESS);
+			}
+		else if(Vrui::getApplicationTime()-exportScreenshotRequestTime>2.0)
+			{
+			exportScreenshotPending=false;
+			exportStatusTime=Vrui::getApplicationTime();
+			if(controlWindow!=0)
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+			}
+		}
+	else if(exportStatusTime>=0.0&&Vrui::getApplicationTime()-exportStatusTime>2.0)
+		{
+		exportStatusTime=-1.0;
+		if(controlWindow!=0)
+			controlWindow->setExportStatus(ControlWindow::EXPORT_IDLE);
+		}
+
 	/* Call the remote server's frame method: */
 	if(remoteServer!=0)
 		remoteServer->frame(Vrui::getApplicationTime());
@@ -1718,7 +1828,7 @@ void Sandbox::frame(void)
 		frameRateTextField->setValue(1.0/Vrui::getCurrentFrameTime());
 		}
 	
-	if(pauseUpdates)
+	if(pauseUpdates||controlWindow!=0)
 		Vrui::scheduleUpdate(Vrui::getApplicationTime()+1.0/30.0);
 	}
 
@@ -2083,6 +2193,8 @@ void Sandbox::eventCallback(Vrui::Application::EventID eventId,Vrui::InputDevice
 				
 				/* Update the main menu toggle: */
 				pauseUpdatesToggle->setToggle(pauseUpdates);
+				if(controlWindow!=0)
+					controlWindow->setFreezeState(pauseUpdates);
 				
 				break;
 			
