@@ -1402,6 +1402,8 @@ void Sandbox::frame(void)
 	{	
 		if(controlWindow!=0)
 		{
+		const double currentFrameTime=Vrui::getCurrentFrameTime();
+		controlWindow->setCurrentFps(currentFrameTime>0?1/currentFrameTime:0);
 		if(controlWindow->processEvents())
 			Vrui::shutdown();
 		

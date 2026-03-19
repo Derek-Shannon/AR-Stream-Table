@@ -48,6 +48,7 @@ class ControlWindow
 	int hoverY;
 	int sliderAngleValue;
 	int appliedAngleValue;
+    int currentFps;
 
 	unsigned long colorBackground;
 	unsigned long colorPanel;
@@ -91,6 +92,7 @@ class ControlWindow
 
 	bool getFreezeState(void) const;
 	void setFreezeState(bool state);
+    void setCurrentFps(int newCurrentFps);
 	bool consumeExportRequest(void);
 	void setExportStatus(ExportStatus newStatus);
 

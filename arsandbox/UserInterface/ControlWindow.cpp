@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include <stdexcept>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
@@ -128,7 +129,9 @@ void ControlWindow::draw(void)
 
 	drawButton(exitButtonRect,"Exit",false,exitButtonRect.contains(hoverX,hoverY));
 	setColor(colorText);
-	XDrawString(display,window,graphicsContext,760,88,"FPS: 30",7);
+	char fpsBuffer[48];
+	snprintf(fpsBuffer,sizeof(fpsBuffer),"FPS: %d", (int)currentFps);
+	XDrawString(display,window,graphicsContext,760,88,fpsBuffer,int(strlen(fpsBuffer)));
 	char angleBuffer[48];
 	snprintf(angleBuffer,sizeof(angleBuffer),"Current Angle: %d",appliedAngleValue);
 	XDrawString(display,window,graphicsContext,850,88,angleBuffer,int(strlen(angleBuffer)));
@@ -174,7 +177,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(true),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
-	 sliderAngleValue(0),appliedAngleValue(0),
+	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),
 	 exportStatus(EXPORT_IDLE)
@@ -241,6 +244,17 @@ void ControlWindow::setFreezeState(bool state)
 		{
 		freezeOn=state;
 		unfreezeOn=!state;
+		draw();
+		}
+	}
+
+void ControlWindow::setCurrentFps(int newCurrentFps)
+	{
+	if(newCurrentFps<0.0)
+		newCurrentFps=0.0;
+	if(fabs(currentFps-newCurrentFps)>=0.05)
+		{
+		currentFps=newCurrentFps;
 		draw();
 		}
 	}
