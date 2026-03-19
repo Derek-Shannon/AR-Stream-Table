@@ -30,7 +30,7 @@ void ControlWindow::setColor(unsigned long color)
 bool ControlWindow::isInteractiveAt(int x,int y) const
 	{
 	return exitButtonRect.contains(x,y)||freezeButtonRect.contains(x,y)||exportButtonRect.contains(x,y)||
-	       unfreezeButtonRect.contains(x,y)||removeWaterButtonRect.contains(x,y)||
+	       removeWaterButtonRect.contains(x,y) ||
 	       sliderTrackRect.contains(x,y)||sliderApplyRect.contains(x,y);
 	}
 
@@ -136,8 +136,10 @@ void ControlWindow::draw(void)
 	snprintf(angleBuffer,sizeof(angleBuffer),"Current Tilt Angle: %d",appliedAngleValue);
 	drawCenteredText(angleRect,130,angleBuffer,statFont,colorSuccess);
 
-	/*Freeze and Unfreeze button layout */
-	drawButton(freezeButtonRect,"Freeze Topography",freezeOn,freezeButtonRect.contains(hoverX,hoverY));
+	/* Topography toggle and export button layout */
+	char freezeLabel[64];
+	snprintf(freezeLabel,sizeof(freezeLabel),"Freeze Topography: %s",freezeOn?"ON":"OFF");
+	drawButton(freezeButtonRect,freezeLabel,freezeOn,freezeButtonRect.contains(hoverX,hoverY));
 	drawButton(exportButtonRect,"Export Topography",exportInProgress,exportButtonRect.contains(hoverX,hoverY));
 	
 	/*Screenshot message success or failure*/
@@ -153,7 +155,6 @@ void ControlWindow::draw(void)
 		const char* exportMessage="Error: Please Try Again";
 		XDrawString(display,window,graphicsContext,774,210,exportMessage,int(strlen(exportMessage)));
 		}
-	drawButton(unfreezeButtonRect,"Unfreeze Topography",unfreezeOn,unfreezeButtonRect.contains(hoverX,hoverY));
 
 	const Rect sliderHeaderRect={540,284,444,78};
 	setFont(statFont);
@@ -181,7 +182,7 @@ void ControlWindow::draw(void)
 
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
-	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(true),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
+	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
 	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0),
 	 titleFont(0),sectionFont(0),statFont(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
@@ -274,7 +275,6 @@ void ControlWindow::setFreezeState(bool state)
 	if(freezeOn!=state)
 		{
 		freezeOn=state;
-		unfreezeOn=!state;
 		draw();
 		}
 	}
@@ -337,20 +337,12 @@ bool ControlWindow::processEvents(void)
 			if(exitButtonRect.contains(x,y))
 				closeRequested=true;
 			else if(freezeButtonRect.contains(x,y))
-				{
-				freezeOn=true;
-				unfreezeOn=false;
-				}
+				freezeOn=!freezeOn;
 			else if(exportButtonRect.contains(x,y))
 				{
 				exportRequested=true;
 				exportInProgress=true;
 				exportStatus=EXPORT_PENDING;
-				}
-			else if(unfreezeButtonRect.contains(x,y))
-				{
-				unfreezeOn=true;
-				freezeOn=false;
 				}
 			else if(removeWaterButtonRect.contains(x,y))
 				removeWaterOn=!removeWaterOn;
@@ -380,7 +372,6 @@ bool ControlWindow::processEvents(void)
 const ControlWindow::Rect ControlWindow::exitButtonRect={844,500,140,40};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
-const ControlWindow::Rect ControlWindow::unfreezeButtonRect={540,212,210,36};
 const ControlWindow::Rect ControlWindow::removeWaterButtonRect{10,170,220,40};
 const ControlWindow::Rect ControlWindow::sliderTrackRect={540,392,444,28};
 const ControlWindow::Rect ControlWindow::sliderApplyRect={872,442,112,36};
