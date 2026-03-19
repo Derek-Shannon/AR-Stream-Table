@@ -2,6 +2,7 @@
 #define USERINTERFACE_CONTROLWINDOW_INCLUDED
 
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 class ControlWindow
 	{
@@ -48,6 +49,10 @@ class ControlWindow
 	int appliedAngleValue;
     int currentFps;
 
+    XFontStruct* titleFont;
+    XFontStruct* sectionFont;
+    XFontStruct* statFont;
+
 	unsigned long colorBackground;
 	unsigned long colorPanel;
 	unsigned long colorBorder;
@@ -65,7 +70,9 @@ class ControlWindow
 	void setColor(unsigned long color);
 	bool isInteractiveAt(int x,int y) const;
 	unsigned long resolveButtonFill(bool active,bool hovered) const;
-	void drawButton(const Rect& rect,const char* label,bool active=false,bool hovered=false);
+    void setFont(XFontStruct* font);
+    void drawCenteredText(const Rect& rect, int baselineY,const char* label,XFontStruct* font, unsigned long color);
+    void drawButton(const Rect& rect,const char* label, bool active=false, bool hovered=false, unsigned long fillColorOverride=0,unsigned long textColorOverride=0);
 	void setAngleFromMouse(int mouseX);
 	void updateCursor(int x,int y);
 	void draw(void);
