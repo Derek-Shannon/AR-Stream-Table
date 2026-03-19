@@ -43,15 +43,28 @@ unsigned long ControlWindow::resolveButtonFill(bool active,bool hovered) const
 	return colorButton;
 	}
 
-void ControlWindow::drawButton(const Rect& rect,const char* label,bool active,bool hovered)
+void ControlWindow::setFont(XFontStruct* font)
+{
+	if(font!=0)
+		XSetFont(display,graphicsContext,font->fid);
+	}
+
+void ControlWindow::drawCenteredText(const Rect& rect,int baselineY,const char* label,XFontStruct* font,unsigned long color)
 	{
-	setColor(resolveButtonFill(active,hovered));
+	setFont(font);
+	const int textWidth=XTextWidth(font,label,int(strlen(label)));
+	setColor(color);
+	XDrawString(display,window,graphicsContext,rect.x+(rect.w-textWidth)/2,baselineY,label,int(strlen(label)));
+	}
+
+void ControlWindow::drawButton(const Rect& rect,const char* label,bool active,bool hovered,unsigned long fillColorOverride,unsigned long textColorOverride)
+	{
+	setColor(fillColorOverride!=0?fillColorOverride:resolveButtonFill(active,hovered));
 	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	setColor(colorButtonBorder);
 	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
-	setColor(colorText);
-	XDrawString(display,window,graphicsContext,rect.x+14,rect.y+rect.h/2+5,label,int(strlen(label)));
-	}
+	drawCenteredText(rect, rect.y+rect.h/2+6,label,sectionFont,textColorOverride!=0?textColorOverride:colorText);
+}
 
 void ControlWindow::setAngleFromMouse(int mouseX)
 	{
@@ -84,6 +97,7 @@ void ControlWindow::updateCursor(int x,int y)
 
 void ControlWindow::draw(void)
 	{
+	setFont(sectionFont);
 	setColor(colorBackground);
 	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
 
@@ -94,8 +108,10 @@ void ControlWindow::draw(void)
 
 	setColor(colorSubtleText);
 	setColor(colorText);
-	XDrawString(display,window,graphicsContext,10,22,"Control Window V1",17);
+	setFont(titleFont);
+	XDrawString(display,window,graphicsContext,10,24,"Control Window V3",17);
 
+	setFont(sectionFont);
 	setColor(colorSubtleText);
 	XDrawString(display,window,graphicsContext,10,62,"Control for Stream Table",24);
 
@@ -110,36 +126,43 @@ void ControlWindow::draw(void)
 	setColor(WhitePixel(display,DefaultScreen(display)));
 	XDrawLine(display,window,graphicsContext,windowWidth/2,46,windowWidth/2,windowHeight-16);
 
-	drawButton(exitButtonRect,"Exit",false,exitButtonRect.contains(hoverX,hoverY));
-	setColor(colorText);
+	drawButton(exitButtonRect,"Exit",false,exitButtonRect.contains(hoverX,hoverY),colorError,colorText);
+	const Rect fpsRect={540,58,444,40};
+	const Rect angleRect={540,98,444,40};
 	char fpsBuffer[48];
-	snprintf(fpsBuffer,sizeof(fpsBuffer),"FPS: %d", (int)currentFps);
-	XDrawString(display,window,graphicsContext,760,88,fpsBuffer,int(strlen(fpsBuffer)));
+	snprintf(fpsBuffer,sizeof(fpsBuffer),"FPS: %d",currentFps);
+	drawCenteredText(fpsRect,90,fpsBuffer,statFont,colorText);
 	char angleBuffer[48];
-	snprintf(angleBuffer,sizeof(angleBuffer),"Current Angle: %d",appliedAngleValue);
-	XDrawString(display,window,graphicsContext,850,88,angleBuffer,int(strlen(angleBuffer)));
+	snprintf(angleBuffer,sizeof(angleBuffer),"Current Tilt Angle: %d",appliedAngleValue);
+	drawCenteredText(angleRect,130,angleBuffer,statFont,colorSuccess);
 
+	/*Freeze and Unfreeze button layout */
 	drawButton(freezeButtonRect,"Freeze Topography",freezeOn,freezeButtonRect.contains(hoverX,hoverY));
 	drawButton(exportButtonRect,"Export Topography",exportInProgress,exportButtonRect.contains(hoverX,hoverY));
+	
+	/*Screenshot message success or failure*/
 	if(exportStatus==EXPORT_SUCCESS)
 		{
 		setColor(colorSuccess);
 		const char* exportMessage="Screenshot saved";
-		XDrawString(display,window,graphicsContext,774,176,exportMessage,int(strlen(exportMessage)));
+		XDrawString(display,window,graphicsContext,774,210,exportMessage,int(strlen(exportMessage)));
 		}
 	else if(exportStatus==EXPORT_ERROR)
 		{
 		setColor(colorError);
 		const char* exportMessage="Error: Please Try Again";
-		XDrawString(display,window,graphicsContext,774,176,exportMessage,int(strlen(exportMessage)));
+		XDrawString(display,window,graphicsContext,774,210,exportMessage,int(strlen(exportMessage)));
 		}
 	drawButton(unfreezeButtonRect,"Unfreeze Topography",unfreezeOn,unfreezeButtonRect.contains(hoverX,hoverY));
 
-	setColor(colorText);
-	XDrawString(display,window,graphicsContext,540,270,"Table Tilt Slider (0 - 22 degrees)",34);
+	const Rect sliderHeaderRect={540,284,444,78};
+	setFont(statFont);
+	drawCenteredText(sliderHeaderRect,310,"Angle Selected:",statFont,colorText);
 	char selectedBuffer[48];
-	snprintf(selectedBuffer,sizeof(selectedBuffer),"Angle Selected: %d",sliderAngleValue);
-	XDrawString(display,window,graphicsContext,760,270,selectedBuffer,int(strlen(selectedBuffer)));
+	snprintf(selectedBuffer,sizeof(selectedBuffer),"%d",sliderAngleValue);
+	drawCenteredText(sliderHeaderRect,338,selectedBuffer,statFont,colorAccent);
+	setFont(titleFont);
+	drawCenteredText(sliderHeaderRect,366,"Table Tilt Slider (0 - 22 degrees): ",titleFont,colorText);
 
 	setColor(colorBorder);
 	XFillRectangle(display,window,graphicsContext,sliderTrackRect.x,sliderTrackRect.y+sliderTrackRect.h/2-2,sliderTrackRect.w,4);
@@ -152,7 +175,6 @@ void ControlWindow::draw(void)
 	drawButton(sliderApplyRect,"Apply",false,sliderApplyRect.contains(hoverX,hoverY));
 
 	setColor(colorSubtleText);
-	XDrawString(display,window,graphicsContext,986,24,"_  []  X",9);
 
 	XFlush(display);
 	}
@@ -161,6 +183,7 @@ ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(true),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
 	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0),
+	 titleFont(0),sectionFont(0),statFont(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),
 	 exportStatus(EXPORT_IDLE)
@@ -181,6 +204,25 @@ ControlWindow::ControlWindow(void)
 	arrowCursor=XCreateFontCursor(display,XC_left_ptr);
 	handCursor=XCreateFontCursor(display,XC_hand2);
 	XDefineCursor(display,window,arrowCursor);
+
+	titleFont=XLoadQueryFont(display,"10x20");
+	sectionFont=XLoadQueryFont(display,"9x15");
+	statFont=XLoadQueryFont(display,"12x24");
+	if(titleFont==0)
+		titleFont=XQueryFont(display,XGContextFromGC(DefaultGC(display,screen)));
+	if(sectionFont==0)
+		sectionFont=titleFont;
+	if(statFont==0)
+		statFont=titleFont;
+	setFont(sectionFont);
+
+	XSizeHints sizeHints;
+	sizeHints.flags=PMinSize|PMaxSize;
+	sizeHints.min_width=windowWidth;
+	sizeHints.max_width=windowWidth;
+	sizeHints.min_height=windowHeight;
+	sizeHints.max_height=windowHeight;
+	XSetWMNormalHints(display,window,&sizeHints);
 
 	colorBackground=allocColor("#1a1b1f",BlackPixel(display,screen));
 	colorPanel=allocColor("#202227",BlackPixel(display,screen));
@@ -204,6 +246,12 @@ ControlWindow::~ControlWindow(void)
 	{
 	if(display!=0)
 		{
+		if(titleFont!=0&&titleFont!=sectionFont&&titleFont!=statFont)
+			XFreeFont(display,titleFont);
+		if(sectionFont!=0&&sectionFont!=titleFont&&sectionFont!=statFont)
+			XFreeFont(display,sectionFont);
+		if(statFont!=0&&statFont!=titleFont&&statFont!=sectionFont)
+			XFreeFont(display,statFont);
 		if(graphicsContext!=0)
 			XFreeGC(display,graphicsContext);
 		if(arrowCursor!=None)
@@ -233,9 +281,9 @@ void ControlWindow::setFreezeState(bool state)
 
 void ControlWindow::setCurrentFps(int newCurrentFps)
 	{
-	if(newCurrentFps<0.0)
-		newCurrentFps=0.0;
-	if(fabs(currentFps-newCurrentFps)>=0.05)
+	if(newCurrentFps<0)
+		newCurrentFps=0;
+	if(currentFps!=newCurrentFps)
 		{
 		currentFps=newCurrentFps;
 		draw();
@@ -329,10 +377,10 @@ bool ControlWindow::processEvents(void)
 	return closeRequested;
 	}
 
-const ControlWindow::Rect ControlWindow::exitButtonRect={650,70,90,32};
-const ControlWindow::Rect ControlWindow::freezeButtonRect={540,122,210,36};
-const ControlWindow::Rect ControlWindow::exportButtonRect={774,122,210,36};
-const ControlWindow::Rect ControlWindow::unfreezeButtonRect={540,172,210,36};
+const ControlWindow::Rect ControlWindow::exitButtonRect={844,500,140,40};
+const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
+const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
+const ControlWindow::Rect ControlWindow::unfreezeButtonRect={540,212,210,36};
 const ControlWindow::Rect ControlWindow::removeWaterButtonRect{10,170,220,40};
-const ControlWindow::Rect ControlWindow::sliderTrackRect={540,304,444,28};
-const ControlWindow::Rect ControlWindow::sliderApplyRect={872,350,112,36};
+const ControlWindow::Rect ControlWindow::sliderTrackRect={540,392,444,28};
+const ControlWindow::Rect ControlWindow::sliderApplyRect={872,442,112,36};
