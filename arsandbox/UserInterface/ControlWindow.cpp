@@ -31,7 +31,6 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 	{
 	return exitButtonRect.contains(x,y)||freezeButtonRect.contains(x,y)||exportButtonRect.contains(x,y)||
 	       unfreezeButtonRect.contains(x,y)||removeWaterButtonRect.contains(x,y)||
-	       applyChangesRect.contains(x,y)||waterCheckboxRect.contains(x,y)||
 	       sliderTrackRect.contains(x,y)||sliderApplyRect.contains(x,y);
 	}
 
@@ -52,21 +51,6 @@ void ControlWindow::drawButton(const Rect& rect,const char* label,bool active,bo
 	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	setColor(colorText);
 	XDrawString(display,window,graphicsContext,rect.x+14,rect.y+rect.h/2+5,label,int(strlen(label)));
-	}
-
-void ControlWindow::drawCheckbox(const Rect& rect,const char* label,bool checked,bool hovered)
-	{
-	setColor(hovered?colorButtonHover:colorButton);
-	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
-	setColor(colorButtonBorder);
-	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
-	if(checked)
-		{
-		setColor(colorAccent);
-		XFillRectangle(display,window,graphicsContext,rect.x+3,rect.y+3,rect.w-5,rect.h-5);
-		}
-	setColor(colorText);
-	XDrawString(display,window,graphicsContext,rect.x+24,rect.y+13,label,int(strlen(label)));
 	}
 
 void ControlWindow::setAngleFromMouse(int mouseX)
@@ -120,8 +104,7 @@ void ControlWindow::draw(void)
 
 	XDrawString(display,window,graphicsContext,10,128,"Real World View",15);
 
-	drawCheckbox(waterCheckboxRect,"Water Simulation",waterSimulationOn,waterCheckboxRect.contains(hoverX,hoverY));
-	drawButton(applyChangesRect,"Apply Changes",false,applyChangesRect.contains(hoverX,hoverY));
+	drawButton(removeWaterButtonRect,"Drain Simulated Water",false,removeWaterButtonRect.contains(hoverX,hoverY));
 
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
@@ -305,8 +288,6 @@ bool ControlWindow::processEvents(void)
 			updateCursor(x,y);
 			if(exitButtonRect.contains(x,y))
 				closeRequested=true;
-			else if(waterCheckboxRect.contains(x,y))
-				waterSimulationOn=!waterSimulationOn;
 			else if(freezeButtonRect.contains(x,y))
 				{
 				freezeOn=true;
@@ -352,8 +333,6 @@ const ControlWindow::Rect ControlWindow::exitButtonRect={650,70,90,32};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,122,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,122,210,36};
 const ControlWindow::Rect ControlWindow::unfreezeButtonRect={540,172,210,36};
-const ControlWindow::Rect ControlWindow::removeWaterButtonRect={774,172,210,36};
-const ControlWindow::Rect ControlWindow::applyChangesRect={10,220,180,40};
-const ControlWindow::Rect ControlWindow::waterCheckboxRect={12,170,16,16};
+const ControlWindow::Rect ControlWindow::removeWaterButtonRect{10,170,220,40};
 const ControlWindow::Rect ControlWindow::sliderTrackRect={540,304,444,28};
 const ControlWindow::Rect ControlWindow::sliderApplyRect={872,350,112,36};

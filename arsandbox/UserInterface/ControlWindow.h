@@ -23,8 +23,6 @@ class ControlWindow
 	static const Rect exportButtonRect;
 	static const Rect unfreezeButtonRect;
 	static const Rect removeWaterButtonRect;
-	static const Rect applyChangesRect;
-	static const Rect waterCheckboxRect;
 	static const Rect sliderTrackRect;
 	static const Rect sliderApplyRect;
 
@@ -68,7 +66,6 @@ class ControlWindow
 	bool isInteractiveAt(int x,int y) const;
 	unsigned long resolveButtonFill(bool active,bool hovered) const;
 	void drawButton(const Rect& rect,const char* label,bool active=false,bool hovered=false);
-	void drawCheckbox(const Rect& rect,const char* label,bool checked,bool hovered);
 	void setAngleFromMouse(int mouseX);
 	void updateCursor(int x,int y);
 	void draw(void);
