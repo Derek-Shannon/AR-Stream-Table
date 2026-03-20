@@ -3,10 +3,31 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdexcept>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
+#include <X11/keysym.h>
+
+namespace
+	{
+	std::string trimWhitespace(const std::string& value)
+		{
+		std::string::size_type begin=0;
+		while(begin<value.size()&&isspace(static_cast<unsigned char>(value[begin]))!=0)
+			++begin;
+		std::string::size_type end=value.size();
+		while(end>begin&&isspace(static_cast<unsigned char>(value[end-1]))!=0)
+			--end;
+		return value.substr(begin,end-begin);
+		}
+
+	bool isValidViewNameCharacter(unsigned char c)
+		{
+		return c>=32&&c!='/'&&c!='\\'&&c!=':'&&c!='*'&&c!='?'&&c!='"'&&c!='<'&&c!='>'&&c!='|';
+		}
+	}
 
 bool ControlWindow::Rect::contains(int px,int py) const
 	{
@@ -30,6 +51,8 @@ void ControlWindow::setColor(unsigned long color)
 
 bool ControlWindow::isInteractiveAt(int x,int y) const
 	{
+	if(exportDialogVisible)
+		return exportDialogCancelRect.contains(x,y)||exportDialogOkRect.contains(x,y)||exportDialogInputRect.contains(x,y);
 	return exitButtonRect.contains(x,y)||freezeButtonRect.contains(x,y)||exportButtonRect.contains(x,y)||
 	       removeWaterButtonRect.contains(x,y) ||
 	       sliderTrackRect.contains(x,y)||sliderApplyRect.contains(x,y);
@@ -95,6 +118,121 @@ void ControlWindow::updateCursor(int x,int y)
 		XDefineCursor(display,window,hoverInteractive?handCursor:arrowCursor);
 		}
 	}
+void ControlWindow::openExportDialog(void)
+	{
+	exportDialogVisible=true;
+	exportDialogErrorMessage.clear();
+	hoverInteractive=false;
+	XDefineCursor(display,window,arrowCursor);
+	}
+
+void ControlWindow::closeExportDialog(void)
+	{
+	exportDialogVisible=false;
+	exportDialogErrorMessage.clear();
+	exportNameInput.clear();
+	}
+
+void ControlWindow::showExportDialogError(const std::string& message,const std::string& attemptedName)
+	{
+	exportDialogVisible=true;
+	exportDialogErrorMessage=message;
+	if(!attemptedName.empty())
+		exportNameInput=attemptedName;
+	statusMessage.clear();
+	exportRequested=false;
+	exportInProgress=false;
+	exportStatus=EXPORT_IDLE;
+	draw();
+	}
+
+void ControlWindow::appendExportInput(char c)
+	{
+	if(exportNameInput.size()>=exportNameMaxLength)
+		{
+		exportDialogErrorMessage="Name is too long";
+		return;
+		}
+	if(!isValidViewNameCharacter(static_cast<unsigned char>(c)))
+		{
+		exportDialogErrorMessage="Use letters, numbers, spaces, - or _";
+		return;
+		}
+	exportNameInput.push_back(c);
+	exportDialogErrorMessage.clear();
+	}
+
+void ControlWindow::eraseExportInput(void)
+	{
+	if(!exportNameInput.empty())
+		exportNameInput.erase(exportNameInput.size()-1);
+	exportDialogErrorMessage.clear();
+	}
+
+void ControlWindow::submitExportDialog(void)
+	{
+	std::string trimmedName=trimWhitespace(exportNameInput);
+	if(trimmedName.empty())
+		{
+		exportDialogErrorMessage="Please enter a view name";
+		return;
+		}
+	for(std::string::const_iterator it=trimmedName.begin();it!=trimmedName.end();++it)
+		if(!isValidViewNameCharacter(static_cast<unsigned char>(*it)))
+			{
+			exportDialogErrorMessage="Name contains invalid characters";
+			return;
+			}
+	exportRequestName=trimmedName;
+	exportRequested=true;
+	exportInProgress=true;
+	exportStatus=EXPORT_PENDING;
+	statusMessage.clear();
+	closeExportDialog();
+	}
+
+void ControlWindow::drawExportDialog(void)
+	{
+	setColor(colorOverlay);
+	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
+
+	setColor(colorPanel);
+	XFillRectangle(display,window,graphicsContext,exportDialogRect.x,exportDialogRect.y,exportDialogRect.w,exportDialogRect.h);
+	setColor(colorBorder);
+	XDrawRectangle(display,window,graphicsContext,exportDialogRect.x,exportDialogRect.y,exportDialogRect.w,exportDialogRect.h);
+
+	const char* title="Export Topography";
+	setFont(titleFont);
+	setColor(colorText);
+	XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+38,title,int(strlen(title)));
+
+	const char* prompt="Please name your view";
+	setFont(sectionFont);
+	XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+78,prompt,int(strlen(prompt)));
+
+	setColor(colorInputBackground);
+	XFillRectangle(display,window,graphicsContext,exportDialogInputRect.x,exportDialogInputRect.y,exportDialogInputRect.w,exportDialogInputRect.h);
+	setColor(colorBorder);
+	XDrawRectangle(display,window,graphicsContext,exportDialogInputRect.x,exportDialogInputRect.y,exportDialogInputRect.w,exportDialogInputRect.h);
+	setColor(colorText);
+	setFont(sectionFont);
+	XDrawString(display,window,graphicsContext,exportDialogInputRect.x+12,exportDialogInputRect.y+26,exportNameInput.c_str(),int(exportNameInput.size()));
+	if(exportDialogVisible)
+		{
+		int textWidth=XTextWidth(sectionFont,exportNameInput.c_str(),int(exportNameInput.size()));
+		int cursorX=exportDialogInputRect.x+12+textWidth;
+		XDrawLine(display,window,graphicsContext,cursorX,exportDialogInputRect.y+8,cursorX,exportDialogInputRect.y+30);
+		}
+
+	if(!exportDialogErrorMessage.empty())
+		{
+		setColor(colorError);
+		XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+156,exportDialogErrorMessage.c_str(),int(exportDialogErrorMessage.size()));
+		}
+
+	drawButton(exportDialogCancelRect,"Cancel",false,exportDialogCancelRect.contains(hoverX,hoverY));
+	drawButton(exportDialogOkRect,"OK",false,exportDialogOkRect.contains(hoverX,hoverY),exportDialogOkRect.contains(hoverX,hoverY)?colorOkButtonHover:colorOkButton,colorText);
+	}
 
 void ControlWindow::draw(void)
 	{
@@ -107,7 +245,6 @@ void ControlWindow::draw(void)
 	setColor(colorBorder);
 	XDrawLine(display,window,graphicsContext,0,34,windowWidth,34);
 
-	setColor(colorSubtleText);
 	setColor(colorText);
 	setFont(titleFont);
 	XDrawString(display,window,graphicsContext,10,24,"Control Window V3",17);
@@ -148,17 +285,10 @@ void ControlWindow::draw(void)
 	drawButton(exportButtonRect,"Export Topography",exportInProgress,exportButtonRect.contains(hoverX,hoverY));
 	
 	/*Screenshot message success or failure*/
-	if(exportStatus==EXPORT_SUCCESS)
+	if(!statusMessage.empty())
 		{
-		setColor(colorSuccess);
-		const char* exportMessage="Screenshot saved";
-		XDrawString(display,window,graphicsContext,774,210,exportMessage,int(strlen(exportMessage)));
-		}
-	else if(exportStatus==EXPORT_ERROR)
-		{
-		setColor(colorError);
-		const char* exportMessage="Error: Please Try Again";
-		XDrawString(display,window,graphicsContext,774,210,exportMessage,int(strlen(exportMessage)));
+		setColor(exportStatus==EXPORT_ERROR?colorError:(exportStatus==EXPORT_SUCCESS?colorSuccess:colorSubtleText));
+		XDrawString(display,window,graphicsContext,610,210,statusMessage.c_str(),int(statusMessage.size()));
 		}
 
 	const Rect sliderHeaderRect={540,284,444,78};
@@ -180,18 +310,20 @@ void ControlWindow::draw(void)
 
 	drawButton(sliderApplyRect,"Apply",false,sliderApplyRect.contains(hoverX,hoverY));
 
-	setColor(colorSubtleText);
+	if(exportDialogVisible)
+		drawExportDialog();
 
 	XFlush(display);
 	}
 
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
-	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
+	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(false),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
 	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
 	 titleFont(0),sectionFont(0),statFont(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
-	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),
+	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
+	 exportRequestName(),exportNameInput(),exportDialogErrorMessage(),statusMessage(),
 	 exportStatus(EXPORT_IDLE)
 	{
 	display=XOpenDisplay(0);
@@ -201,7 +333,7 @@ ControlWindow::ControlWindow(void)
 	const int screen=DefaultScreen(display);
 	window=XCreateSimpleWindow(display,RootWindow(display,screen),80,80,windowWidth,windowHeight,1,BlackPixel(display,screen),BlackPixel(display,screen));
 	XStoreName(display,window,"GUI for Stream Table Control");
-	XSelectInput(display,window,ExposureMask|StructureNotifyMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask);
+	XSelectInput(display,window,ExposureMask|StructureNotifyMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask|KeyPressMask);
 
 	wmDeleteWindow=XInternAtom(display,"WM_DELETE_WINDOW",False);
 	XSetWMProtocols(display,window,&wmDeleteWindow,1);
@@ -242,6 +374,11 @@ ControlWindow::ControlWindow(void)
 	colorAccent=allocColor("#87a8ff",WhitePixel(display,screen));
 	colorSuccess=allocColor("#4caf50",WhitePixel(display,screen));
 	colorError=allocColor("#ff5c5c",WhitePixel(display,screen));
+
+	colorOverlay=allocColor("#111318",BlackPixel(display,screen));
+	colorInputBackground=allocColor("#111318",BlackPixel(display,screen));
+	colorOkButton=allocColor("#2e7d32",WhitePixel(display,screen));
+	colorOkButtonHover=allocColor("#37933c",WhitePixel(display,screen));
 
 	//Arduino tilt
 	arduinoSensor = new SensorUtility("/dev/ttyUSB0", 115200);
@@ -298,18 +435,21 @@ void ControlWindow::setCurrentFps(int newCurrentFps)
 		}
 	}
 
-bool ControlWindow::consumeExportRequest(void)
+bool ControlWindow::consumeExportRequest(std::string& requestedName)
 	{
 	if(!exportRequested)
 		return false;
 	exportRequested=false;
+	requestedName=exportRequestName;
+	exportRequestName.clear();
 	return true;
 	}
 
-void ControlWindow::setExportStatus(ExportStatus newStatus)
+void ControlWindow::setExportStatus(ExportStatus newStatus,const std::string& message)
 	{
 	exportStatus=newStatus;
 	exportInProgress=newStatus==EXPORT_PENDING;
+	statusMessage=message;
 	draw();
 	}
 
@@ -342,15 +482,21 @@ bool ControlWindow::processEvents(void)
 			const int x=event.xbutton.x;
 			const int y=event.xbutton.y;
 			updateCursor(x,y);
-			if(exitButtonRect.contains(x,y))
+			if(exportDialogVisible)
+				{
+				if(exportDialogCancelRect.contains(x,y))
+					closeExportDialog();
+				else if(exportDialogOkRect.contains(x,y))
+					submitExportDialog();
+				}
+			else if(exitButtonRect.contains(x,y))
 				closeRequested=true;
 			else if(freezeButtonRect.contains(x,y))
 				freezeOn=!freezeOn;
 			else if(exportButtonRect.contains(x,y))
 				{
-				exportRequested=true;
-				exportInProgress=true;
-				exportStatus=EXPORT_PENDING;
+				exportNameInput.clear();
+				openExportDialog();
 				}
 			else if(removeWaterButtonRect.contains(x,y))
 				removeWaterOn=!removeWaterOn;
@@ -367,6 +513,26 @@ bool ControlWindow::processEvents(void)
 			}
 		else if(event.type==ButtonRelease)
 			draggingAngleSlider=false;
+		else if(event.type==KeyPress)
+			{
+			if(exportDialogVisible)
+				{
+				KeySym keySym=NoSymbol;
+				char buffer[16];
+				const int count=XLookupString(&event.xkey,buffer,sizeof(buffer),&keySym,0);
+				if(keySym==XK_Return||keySym==XK_KP_Enter)
+					submitExportDialog();
+				else if(keySym==XK_Escape)
+					closeExportDialog();
+				else if(keySym==XK_BackSpace||keySym==XK_Delete)
+					eraseExportInput();
+				else
+					for(int i=0;i<count;++i)
+						if(buffer[i]>=32&&buffer[i]<127)
+							appendExportInput(buffer[i]);
+				draw();
+				}
+			}
 		else if(event.type==ClientMessage)
 			{
 			if(Atom(event.xclient.data.l[0])==wmDeleteWindow)
@@ -388,3 +554,7 @@ const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
 const ControlWindow::Rect ControlWindow::removeWaterButtonRect{10,170,220,40};
 const ControlWindow::Rect ControlWindow::sliderTrackRect={540,392,444,28};
 const ControlWindow::Rect ControlWindow::sliderApplyRect={872,442,112,36};
+const ControlWindow::Rect ControlWindow::exportDialogRect={300,150,420,220};
+const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
+const ControlWindow::Rect ControlWindow::exportDialogCancelRect={320,315,120,34};
+const ControlWindow::Rect ControlWindow::exportDialogOkRect={580,315,120,34};

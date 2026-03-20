@@ -4,6 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include "SensorUtility.h"
+#include <string>
 
 class ControlWindow
 	{
@@ -19,6 +20,7 @@ class ControlWindow
 
 	static const int windowWidth=1020;
 	static const int windowHeight=560;
+	static const int exportNameMaxLength=36;
 
 	static const Rect exitButtonRect;
 	static const Rect freezeButtonRect;
@@ -27,6 +29,10 @@ class ControlWindow
 	static const Rect removeWaterButtonRect;
 	static const Rect sliderTrackRect;
 	static const Rect sliderApplyRect;
+	static const Rect exportDialogRect;
+	static const Rect exportDialogInputRect;
+	static const Rect exportDialogCancelRect;
+	static const Rect exportDialogOkRect;
 
 	Display* display;
 	Window window;
@@ -44,6 +50,7 @@ class ControlWindow
 	bool removeWaterOn;
 	bool draggingAngleSlider;
 	bool hoverInteractive;
+	bool exportDialogVisible;
 	int hoverX;
 	int hoverY;
 	int sliderAngleValue;
@@ -68,16 +75,31 @@ class ControlWindow
 	unsigned long colorAccent;
 	unsigned long colorSuccess;
 	unsigned long colorError;
+	unsigned long colorOverlay;
+	unsigned long colorInputBackground;
+	unsigned long colorOkButton;
+	unsigned long colorOkButtonHover;
+
+	std::string exportRequestName;
+	std::string exportNameInput;
+	std::string exportDialogErrorMessage;
+	std::string statusMessage;
 
 	unsigned long allocColor(const char* name,unsigned long fallback) const;
 	void setColor(unsigned long color);
 	bool isInteractiveAt(int x,int y) const;
 	unsigned long resolveButtonFill(bool active,bool hovered) const;
     void setFont(XFontStruct* font);
-    void drawCenteredText(const Rect& rect, int baselineY,const char* label,XFontStruct* font, unsigned long color);
-    void drawButton(const Rect& rect,const char* label, bool active=false, bool hovered=false, unsigned long fillColorOverride=0,unsigned long textColorOverride=0);
+    void drawCenteredText(const Rect& rect,int baselineY,const char* label,XFontStruct* font,unsigned long color);
+    void drawButton(const Rect& rect,const char* label,bool active=false,bool hovered=false,unsigned long fillColorOverride=0,unsigned long textColorOverride=0);
 	void setAngleFromMouse(int mouseX);
 	void updateCursor(int x,int y);
+	void openExportDialog(void);
+	void closeExportDialog(void);
+	void appendExportInput(char c);
+	void eraseExportInput(void);
+	void submitExportDialog(void);
+	void drawExportDialog(void);
 	void draw(void);
 
 	
@@ -100,8 +122,10 @@ class ControlWindow
 	bool getFreezeState(void) const;
 	void setFreezeState(bool state);
     void setCurrentFps(int newCurrentFps);
-	bool consumeExportRequest(void);
-	void setExportStatus(ExportStatus newStatus);
+	bool consumeExportRequest(std::string& requestedName);
+	void showExportDialogError(const std::string& message,const std::string& attemptedName=std::string());
+	void setExportStatus(ExportStatus newStatus,const std::string& message=std::string());
+	
 
 	bool processEvents(void);
 	};
