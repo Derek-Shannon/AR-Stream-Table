@@ -3,6 +3,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include "SensorUtility.h"
 
 class ControlWindow
 	{
@@ -48,6 +49,8 @@ class ControlWindow
 	int sliderAngleValue;
 	int appliedAngleValue;
     int currentFps;
+	SensorUtility* arduinoSensor;
+
 
     XFontStruct* titleFont;
     XFontStruct* sectionFont;

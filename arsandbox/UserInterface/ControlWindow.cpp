@@ -1,4 +1,5 @@
 #include "ControlWindow.h"
+#include "SensorUtility.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -122,6 +123,10 @@ void ControlWindow::draw(void)
 
 	drawButton(removeWaterButtonRect,"Drain Simulated Water",false,removeWaterButtonRect.contains(hoverX,hoverY));
 
+	//Arduino loop
+	if (arduinoSensor->isActive()) {
+        appliedAngleValue =  int(arduinoSensor->getRoll());
+    }
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
 	XDrawLine(display,window,graphicsContext,windowWidth/2,46,windowWidth/2,windowHeight-16);
@@ -183,7 +188,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),hoverX(0),hoverY(0),
-	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0),
+	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
 	 titleFont(0),sectionFont(0),statFont(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),
@@ -238,6 +243,9 @@ ControlWindow::ControlWindow(void)
 	colorSuccess=allocColor("#4caf50",WhitePixel(display,screen));
 	colorError=allocColor("#ff5c5c",WhitePixel(display,screen));
 
+	//Arduino tilt
+	arduinoSensor = new SensorUtility("/dev/ttyUSB0", 115200);
+	arduinoSensor->start();
 
 	XMapWindow(display,window);
 	XFlush(display);
@@ -352,7 +360,9 @@ bool ControlWindow::processEvents(void)
 				setAngleFromMouse(x);
 				}
 			else if(sliderApplyRect.contains(x,y))
-				appliedAngleValue=sliderAngleValue;
+				{
+				//appliedAngleValue=sliderAngleValue;
+				}
 			draw();
 			}
 		else if(event.type==ButtonRelease)
@@ -365,6 +375,9 @@ bool ControlWindow::processEvents(void)
 		else if(event.type==DestroyNotify)
 			closeRequested=true;
 		}
+	if(closeRequested == true){
+		arduinoSensor->stop();
+	}
 
 	return closeRequested;
 	}
