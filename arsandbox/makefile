@@ -72,6 +72,7 @@ SHADERINSTALLDIR = $(SHAREINSTALLDIR)/Shaders
 ########################################################################
 
 CFLAGS += -Wall -pedantic
+LDFLAGS += -lpthread
 
 ########################################################################
 # List common packages used by all components of this project
@@ -195,7 +196,8 @@ SARNDBOX_SOURCES = FrameFilter.cpp \
                    DEMTool.cpp \
                    BathymetrySaverTool.cpp \
                    UserInterface/ControlWindow.cpp \
-                   Sandbox.cpp
+                   Sandbox.cpp \
+				   UserInterface/SensorUtility.cpp
 
 $(SARNDBOX_SOURCES:%.cpp=$(OBJDIR)/%.o): | $(DEPDIR)/config
 
