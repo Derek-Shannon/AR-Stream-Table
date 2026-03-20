@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <time.h>
 #include <errno.h>
@@ -1398,6 +1399,55 @@ bool isToken(const std::string& token,const char* pattern)
 
 }
 
+std::string Sandbox::trimViewName(const std::string& name)
+	{
+	std::string::size_type begin=0;
+	while(begin<name.size()&&isspace(static_cast<unsigned char>(name[begin]))!=0)
+		++begin;
+	std::string::size_type end=name.size();
+	while(end>begin&&isspace(static_cast<unsigned char>(name[end-1]))!=0)
+		--end;
+	return name.substr(begin,end-begin);
+	}
+
+bool Sandbox::isValidViewName(const std::string& name)
+	{
+	if(name.empty())
+		return false;
+	for(std::string::const_iterator it=name.begin();it!=name.end();++it)
+		{
+		const unsigned char c=static_cast<unsigned char>(*it);
+		if(c<32||c=='/'||c=='\\'||c==':'||c=='*'||c=='?'||c=='\"'||c=='<'||c=='>'||c=='|')
+			return false;
+		}
+	return true;
+	}
+
+const char* Sandbox::getArExportDirectory(void)
+	{
+	return "/home/streamy/Desktop/AR-Exports";
+	}
+
+std::string Sandbox::buildExportFileName(const char* directory,const std::string& baseName,const char* extension)
+	{
+	std::string result(directory);
+	result.push_back('/');
+	result.append(baseName);
+	result.append(extension);
+	return result;
+	}
+
+bool Sandbox::fileExists(const std::string& fileName)
+	{
+	struct stat fileStat;
+	return stat(fileName.c_str(),&fileStat)==0;
+	}
+
+bool Sandbox::ensureExportDirectory(const char* directory)
+	{
+	return mkdir(directory,0755)==0||errno==EEXIST;
+	}
+
 void Sandbox::frame(void)
 	{	
 		if(controlWindow!=0)
@@ -1413,46 +1463,46 @@ void Sandbox::frame(void)
 			if(pauseUpdatesToggle!=0)
 				pauseUpdatesToggle->setToggle(pauseUpdates);
 			}
-		if(controlWindow->consumeExportRequest())
+		std::string requestedViewName;
+		if(controlWindow->consumeExportRequest(requestedViewName))
 			{
-			const char* screenshotDirectory="/home/streamy/Desktop/AR-Exports";
+			const char* screenshotDirectory=getArExportDirectory();
 			exportScreenshotPending=false;
 			exportStatusTime=-1.0;
+			requestedViewName=trimViewName(requestedViewName);
 			if(access("/home/streamy/Desktop",W_OK)!=0)
 				{
-				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR,"AR export folder is not writable");
 				exportStatusTime=Vrui::getApplicationTime();
 				}
-			else if(mkdir(screenshotDirectory,0755)!=0&&errno!=EEXIST)
+			else if(!isValidViewName(requestedViewName))
 				{
-				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				controlWindow->showExportDialogError("Please enter a valid view name",requestedViewName);
+				}
+			else if(!ensureExportDirectory(screenshotDirectory))
+				{
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR,"Unable to create the AR export folder");
 				exportStatusTime=Vrui::getApplicationTime();
 				}
 			else if(access(screenshotDirectory,W_OK)!=0||Vrui::getNumWindows()<=0||Vrui::getWindow(0)==0)
 				{
-				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR,"Topography export is not available");
 				exportStatusTime=Vrui::getApplicationTime();
 				}
 			else
 				{
-				time_t rawTime=time(0);
-				struct tm timeParts;
-				char screenshotBaseName[64];
-				if(localtime_r(&rawTime,&timeParts)==0||strftime(screenshotBaseName,sizeof(screenshotBaseName),"%m-%d-%Y-%H-%M-%S.png",&timeParts)==0)
+				exportScreenshotFileName=buildExportFileName(screenshotDirectory,requestedViewName,".png");
+				if(fileExists(exportScreenshotFileName))
 					{
-					controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
-					exportStatusTime=Vrui::getApplicationTime();
+					controlWindow->showExportDialogError("Name already exists, choose another");
 					}
 				else
 					{
-					exportScreenshotFileName=screenshotDirectory;
-					exportScreenshotFileName.push_back('/');
-					exportScreenshotFileName.append(screenshotBaseName);
 					Vrui::getWindow(0)->requestScreenshot(exportScreenshotFileName.c_str());
 					Vrui::requestUpdate();
 					exportScreenshotPending=true;
 					exportScreenshotRequestTime=Vrui::getApplicationTime();
-					controlWindow->setExportStatus(ControlWindow::EXPORT_PENDING);
+					controlWindow->setExportStatus(ControlWindow::EXPORT_PENDING,"Saving PNG file...");
 					}
 				}
 			}
@@ -1466,14 +1516,14 @@ void Sandbox::frame(void)
 			exportScreenshotPending=false;
 			exportStatusTime=Vrui::getApplicationTime();
 			if(controlWindow!=0)
-				controlWindow->setExportStatus(ControlWindow::EXPORT_SUCCESS);
+				controlWindow->setExportStatus(ControlWindow::EXPORT_SUCCESS,"Topography exported successfully");
 			}
 		else if(Vrui::getApplicationTime()-exportScreenshotRequestTime>2.0)
 			{
 			exportScreenshotPending=false;
 			exportStatusTime=Vrui::getApplicationTime();
 			if(controlWindow!=0)
-				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR);
+				controlWindow->setExportStatus(ControlWindow::EXPORT_ERROR,"PNG export timed out");
 			}
 		}
 	else if(exportStatusTime>=0.0&&Vrui::getApplicationTime()-exportStatusTime>2.0)

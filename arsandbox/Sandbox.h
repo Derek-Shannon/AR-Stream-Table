@@ -252,6 +252,12 @@ class Sandbox:public Vrui::Application,public GLObject
 	std::string exportScreenshotFileName; // Path of the current screenshot request
 	
 	/* Private methods: */
+	static std::string trimViewName(const std::string& name);
+	static bool isValidViewName(const std::string& name);
+	static const char* getArExportDirectory(void);
+	static std::string buildExportFileName(const char* directory,const std::string& baseName,const char* extension);
+	static bool fileExists(const std::string& fileName);
+	static bool ensureExportDirectory(const char* directory);
 	void rawDepthFrameDispatcher(const Kinect::FrameBuffer& frameBuffer); // Callback receiving raw depth frames from the Kinect camera; forwards them to the frame filter and rain maker objects
 	void receiveFilteredFrame(const Kinect::FrameBuffer& frameBuffer); // Callback receiving filtered depth frames from the filter object
 	void toggleDEM(DEM* dem); // Sets or toggles the currently active DEM
