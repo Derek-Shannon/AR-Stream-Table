@@ -755,6 +755,8 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 frameFilter(0),pauseUpdates(false),
 	 depthImageRenderer(0),
 	 waterTable(0),
+	 baseWaterDeposit(0.0f),
+	 digitalWaterControlsEnabled(false),
 	 propertyGridCreator(0),
 	 handExtractor(0),addWaterFunction(0),addWaterFunctionRegistered(false),
 	 sun(0),
@@ -1207,7 +1209,8 @@ Sandbox::Sandbox(int& argc,char**& argv)
 		snowLine=Math::clamp(snowLine,elevationRange.getMin(),elevationRange.getMax());
 		waterTable->setSnowLine(snowLine);
 		waterTable->setSnowMelt(snowMelt);
-		waterTable->setWaterDeposit(evaporationRate);
+		baseWaterDeposit=GLfloat(evaporationRate);
+		waterTable->setWaterDeposit(baseWaterDeposit);
 		
 		/* Create the property grid creator object: */
 		propertyGridCreator=new PropertyGridCreator(*waterTable,*camera);
@@ -1462,6 +1465,20 @@ void Sandbox::frame(void)
 			pauseUpdates=controlWindow->getFreezeState();
 			if(pauseUpdatesToggle!=0)
 				pauseUpdatesToggle->setToggle(pauseUpdates);
+			}
+		if(waterTable!=0)
+			{
+			GLfloat targetWaterDeposit=baseWaterDeposit;
+			if(digitalWaterControlsEnabled)
+				{
+				const GLfloat maxUiWaterFlow=waterSpeed>0.0?rainStrength/GLfloat(waterSpeed):0.0f;
+				const GLfloat uiWaterFlow=GLfloat(controlWindow->getWaterFlowRate())*maxUiWaterFlow;
+				const GLfloat mediumDrainWaterFlow=maxUiWaterFlow*0.5f;
+				const GLfloat signedUiWaterFlow=controlWindow->getDrainState()?-mediumDrainWaterFlow:uiWaterFlow;
+				targetWaterDeposit+=signedUiWaterFlow;
+				}
+			if(waterTable->getWaterDeposit()!=targetWaterDeposit)
+				waterTable->setWaterDeposit(targetWaterDeposit);
 			}
 		std::string requestedViewName;
 		if(controlWindow->consumeExportRequest(requestedViewName))
@@ -1724,8 +1741,9 @@ void Sandbox::frame(void)
 					if(tokens.size()==2)
 						{
 						double evaporationRate=atof(tokens[1].c_str());
+						baseWaterDeposit=GLfloat(evaporationRate);
 						if(waterTable!=0)
-							waterTable->setWaterDeposit(evaporationRate);
+							waterTable->setWaterDeposit(baseWaterDeposit);
 						}
 					else
 						std::cerr<<"Wrong number of arguments for evaporationRate control pipe command"<<std::endl;

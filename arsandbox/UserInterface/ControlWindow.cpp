@@ -54,7 +54,7 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 	if(exportDialogVisible)
 		return exportDialogCancelRect.contains(x,y)||exportDialogOkRect.contains(x,y)||exportDialogInputRect.contains(x,y);
 	return exitButtonRect.contains(x,y)||freezeButtonRect.contains(x,y)||exportButtonRect.contains(x,y)||
-	       removeWaterButtonRect.contains(x,y) ||
+	       waterFlowTrackRect.contains(x,y)||drainButtonRect.contains(x,y)||
 	       sliderTrackRect.contains(x,y)||sliderApplyRect.contains(x,y);
 	}
 
@@ -89,6 +89,19 @@ void ControlWindow::drawButton(const Rect& rect,const char* label,bool active,bo
 	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	drawCenteredText(rect, rect.y+rect.h/2+6,label,sectionFont,textColorOverride!=0?textColorOverride:colorText);
 }
+
+
+void ControlWindow::setWaterFlowFromMouse(int mouseX)
+	{
+	int minX=waterFlowTrackRect.x;
+	int maxX=waterFlowTrackRect.x+waterFlowTrackRect.w;
+	if(mouseX<minX)
+		mouseX=minX;
+	if(mouseX>maxX)
+		mouseX=maxX;
+	double t=double(mouseX-minX)/double(waterFlowTrackRect.w);
+	waterFlowRate=t;
+	}
 
 void ControlWindow::setAngleFromMouse(int mouseX)
 	{
@@ -258,7 +271,27 @@ void ControlWindow::draw(void)
 
 	XDrawString(display,window,graphicsContext,10,128,"Real World View",15);
 
-	drawButton(removeWaterButtonRect,"Drain Simulated Water",false,removeWaterButtonRect.contains(hoverX,hoverY));
+	const Rect waterFlowHeaderRect={10,150,360,32};
+	drawCenteredText(waterFlowHeaderRect,174,"Add Digital Water Flow Slider: ",sectionFont,colorText);
+	setColor(colorBorder);
+	XFillRectangle(display,window,graphicsContext,waterFlowTrackRect.x,waterFlowTrackRect.y+waterFlowTrackRect.h/2-2,waterFlowTrackRect.w,4);
+	int waterKnobX=waterFlowTrackRect.x+int(waterFlowRate*double(waterFlowTrackRect.w));
+	setColor(colorAccent);
+	XFillRectangle(display,window,graphicsContext,waterFlowTrackRect.x,waterFlowTrackRect.y+waterFlowTrackRect.h/2-2,waterKnobX-waterFlowTrackRect.x,4);
+	setColor(colorText);
+	XFillRectangle(display,window,graphicsContext,waterKnobX-6,waterFlowTrackRect.y+waterFlowTrackRect.h/2-9,12,18);
+	const Rect waterFlowLabelRect={10,220,360,26};
+	const bool waterFlowActive=waterFlowRate>0.01;
+	const char* waterFlowLabel="Off";
+	if(waterFlowRate>=0.67)
+		waterFlowLabel="Fast";
+	else if(waterFlowRate>=0.34)
+		waterFlowLabel="Medium";
+	else if(waterFlowActive)
+		waterFlowLabel="Slow";
+	drawCenteredText(waterFlowLabelRect,238,waterFlowLabel,sectionFont,colorSubtleText);
+	const char* drainButtonLabel=waterFlowActive?"Stop Digital Water Flow":"Hold to Drain Digital Water";
+	drawButton(drainButtonRect,drainButtonLabel,removeWaterOn,drainButtonRect.contains(hoverX,hoverY));
 
 	//Arduino loop
 	if (arduinoSensor->isActive()) {
@@ -318,8 +351,8 @@ void ControlWindow::draw(void)
 
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
-	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(false),removeWaterOn(false),draggingAngleSlider(false),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 sliderAngleValue(0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
+	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(false),removeWaterOn(false),draggingAngleSlider(false),draggingWaterFlowSlider(false),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
+	 waterFlowRate(0.0),sliderAngleValue(0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
 	 titleFont(0),sectionFont(0),statFont(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
@@ -424,6 +457,19 @@ void ControlWindow::setFreezeState(bool state)
 		}
 	}
 
+void ControlWindow::setWaterFlowRate(double newWaterFlowRate)
+	{
+	if(newWaterFlowRate<0.0)
+		newWaterFlowRate=0.0;
+	if(newWaterFlowRate>1.0)
+		newWaterFlowRate=1.0;
+	if(waterFlowRate!=newWaterFlowRate)
+		{
+		waterFlowRate=newWaterFlowRate;
+		draw();
+		}
+	}
+
 void ControlWindow::setCurrentFps(int newCurrentFps)
 	{
 	if(newCurrentFps<0)
@@ -469,6 +515,8 @@ bool ControlWindow::processEvents(void)
 			updateCursor(mx,my);
 			if(draggingAngleSlider)
 				setAngleFromMouse(mx);
+			if(draggingWaterFlowSlider)
+				setWaterFlowFromMouse(mx);
 			draw();
 			}
 		else if(event.type==LeaveNotify)
@@ -498,8 +546,22 @@ bool ControlWindow::processEvents(void)
 				exportNameInput.clear();
 				openExportDialog();
 				}
-			else if(removeWaterButtonRect.contains(x,y))
-				removeWaterOn=!removeWaterOn;
+			else if(waterFlowTrackRect.contains(x,y))
+				{
+				draggingWaterFlowSlider=true;
+				setWaterFlowFromMouse(x);
+				}
+			else if(drainButtonRect.contains(x,y))
+				{
+				draggingWaterFlowSlider=false;
+				if(waterFlowRate>0.01)
+					{
+					waterFlowRate=0.0;
+					removeWaterOn=false;
+					}
+				else
+					removeWaterOn=true;
+				}
 			else if(sliderTrackRect.contains(x,y))
 				{
 				draggingAngleSlider=true;
@@ -512,7 +574,13 @@ bool ControlWindow::processEvents(void)
 			draw();
 			}
 		else if(event.type==ButtonRelease)
+			{
 			draggingAngleSlider=false;
+			draggingWaterFlowSlider=false;
+			if(event.xbutton.button==Button1)
+				removeWaterOn=false;
+			draw();
+			}
 		else if(event.type==KeyPress)
 			{
 			if(exportDialogVisible)
@@ -551,10 +619,22 @@ bool ControlWindow::processEvents(void)
 const ControlWindow::Rect ControlWindow::exitButtonRect={844,500,140,40};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
-const ControlWindow::Rect ControlWindow::removeWaterButtonRect{10,170,220,40};
+const ControlWindow::Rect ControlWindow::waterFlowTrackRect={24,190,332,28};
+const ControlWindow::Rect ControlWindow::drainButtonRect={24,258,332,40};
 const ControlWindow::Rect ControlWindow::sliderTrackRect={540,392,444,28};
 const ControlWindow::Rect ControlWindow::sliderApplyRect={872,442,112,36};
 const ControlWindow::Rect ControlWindow::exportDialogRect={300,150,420,220};
 const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
 const ControlWindow::Rect ControlWindow::exportDialogCancelRect={320,315,120,34};
 const ControlWindow::Rect ControlWindow::exportDialogOkRect={580,315,120,34};
+
+
+bool ControlWindow::getDrainState(void) const
+	{
+	return removeWaterOn;
+	}
+
+double ControlWindow::getWaterFlowRate(void) const
+	{
+	return waterFlowRate;
+	}
