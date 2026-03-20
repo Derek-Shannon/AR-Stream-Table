@@ -223,6 +223,8 @@ class Sandbox:public Vrui::Application,public GLObject
 	double waterSpeed; // Relative speed of water flow simulation
 	unsigned int waterMaxSteps; // Maximum number of water simulation steps per frame
 	GLfloat rainStrength; // Amount of water deposited by rain tools and objects on each water simulation step
+	GLfloat baseWaterDeposit; // Baseline deposited water amount before UI add/drain controls are applied
+	bool digitalWaterControlsEnabled; // Enables applying digital water UI controls to the simulation; false keeps the UI visual only
 	PropertyGridCreator* propertyGridCreator; // Object to create water simulation property grids from color camera images
 	HandExtractor* handExtractor; // Object to detect splayed hands above the sand surface to make rain
 	const AddWaterFunction* addWaterFunction; // Render function registered with the water table

@@ -26,7 +26,8 @@ class ControlWindow
 	static const Rect freezeButtonRect;
 	static const Rect exportButtonRect;
 	static const Rect unfreezeButtonRect;
-	static const Rect removeWaterButtonRect;
+	static const Rect waterFlowTrackRect;
+	static const Rect drainButtonRect;
 	static const Rect sliderTrackRect;
 	static const Rect sliderApplyRect;
 	static const Rect exportDialogRect;
@@ -49,10 +50,12 @@ class ControlWindow
 	bool unfreezeOn;
 	bool removeWaterOn;
 	bool draggingAngleSlider;
+	bool draggingWaterFlowSlider;
 	bool hoverInteractive;
 	bool exportDialogVisible;
 	int hoverX;
 	int hoverY;
+	double waterFlowRate;
 	int sliderAngleValue;
 	int appliedAngleValue;
     int currentFps;
@@ -92,6 +95,7 @@ class ControlWindow
     void setFont(XFontStruct* font);
     void drawCenteredText(const Rect& rect,int baselineY,const char* label,XFontStruct* font,unsigned long color);
     void drawButton(const Rect& rect,const char* label,bool active=false,bool hovered=false,unsigned long fillColorOverride=0,unsigned long textColorOverride=0);
+	void setWaterFlowFromMouse(int mouseX);
 	void setAngleFromMouse(int mouseX);
 	void updateCursor(int x,int y);
 	void openExportDialog(void);
@@ -120,7 +124,10 @@ class ControlWindow
 	~ControlWindow(void);
 
 	bool getFreezeState(void) const;
+	bool getDrainState(void) const;
+	double getWaterFlowRate(void) const;
 	void setFreezeState(bool state);
+	void setWaterFlowRate(double newWaterFlowRate);
     void setCurrentFps(int newCurrentFps);
 	bool consumeExportRequest(std::string& requestedName);
 	void showExportDialogError(const std::string& message,const std::string& attemptedName=std::string());
