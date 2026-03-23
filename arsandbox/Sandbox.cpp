@@ -1183,6 +1183,15 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	ONTransform::Point center=Geometry::mid(Geometry::mid(basePlaneCorners[0],basePlaneCorners[1]),Geometry::mid(basePlaneCorners[2],basePlaneCorners[3]));
 	boxTransform*=ONTransform::translateToOriginFrom(center);
 	
+	/* --- CUSTOM TILT LOGIC: Save original reference frames --- */
+	this->originalBasePlane = basePlane;
+	this->originalBoxCenter = center;
+	x.normalize();
+	this->tableAxisX = x;
+	y.normalize();
+	this->tableAxisY = y;
+	/* --------------------------------------------------------- */
+	
 	/* Calculate the size of the sandbox area: */
 	boxSize=Geometry::dist(center,basePlaneCorners[0]);
 	for(int i=1;i<4;++i)
@@ -1453,6 +1462,35 @@ bool Sandbox::ensureExportDirectory(const char* directory)
 
 void Sandbox::frame(void)
 	{	
+		/* --- CUSTOM TILT LOGIC START --- */
+		// 1. Fetch Roll instead of Pitch
+		float rollDegrees = 15; //sensor.getRoll(); 
+		
+		double rollRads = rollDegrees * (M_PI / 180.0);
+		double cosR = cos(rollRads);
+		double sinR = sin(rollRads);
+		
+		// 2. Rotate the normal vector based on the X-axis (Roll)
+		Geometry::Vector<double,3> origNormal = originalBasePlane.getNormal();
+		
+		// We use tableAxisX here for a side-to-side tilt
+		Geometry::Vector<double,3> newNormal = origNormal * cosR + tableAxisX * sinR;
+		newNormal.normalize();
+		
+		// 3. Recalculate the plane offset to keep it centered
+		double newOffset = newNormal*originalBoxCenter + newNormal*originalBoxCenter + newNormal*originalBoxCenter;
+		
+		// 4. Update the renderer with the new Roll-adjusted plane
+		Geometry::Plane<double,3> tiltedPlane(newNormal, newOffset);
+		depthImageRenderer->setBasePlane(tiltedPlane);
+		
+		// 5. Update the contour line projection
+		for(std::vector<RenderSettings>::iterator rsIt=renderSettings.begin();rsIt!=renderSettings.end();++rsIt) {
+			if(rsIt->elevationColorMap!=0) {
+				rsIt->elevationColorMap->calcTexturePlane(depthImageRenderer);
+			}
+		}
+		/* --- CUSTOM TILT LOGIC END --- */
 		if(controlWindow!=0)
 		{
 		const double currentFrameTime=Vrui::getCurrentFrameTime();

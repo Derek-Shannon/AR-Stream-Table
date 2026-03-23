@@ -217,6 +217,12 @@ class Sandbox:public Vrui::Application,public GLObject
 	Threads::TripleBuffer<Kinect::FrameBuffer> filteredFrames; // Triple buffer for incoming filtered depth frames
 	DepthImageRenderer* depthImageRenderer; // Object managing the current filtered depth image
 	ONTransform boxTransform; // Transformation from camera space to baseplane space (x along long sandbox axis, z up)
+	/* Custom Variables for Stream Table Tilt */
+	Geometry::Plane<double,3> originalBasePlane;
+	Geometry::Vector<double,3> tableAxisX;
+	Geometry::Vector<double,3> tableAxisY;
+	Geometry::Point<double,3> originalBoxCenter;
+	
 	Scalar boxSize; // Radius of sphere around sandbox area
 	Box bbox; // Bounding box around all potential surfaces
 	WaterTable2* waterTable; // Water flow simulation object
