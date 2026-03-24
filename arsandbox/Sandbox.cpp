@@ -756,7 +756,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 depthImageRenderer(0),
 	 waterTable(0),
 	 baseWaterDeposit(0.0f),
-	 digitalWaterControlsEnabled(false),
+	 digitalWaterControlsEnabled(true),
 	 propertyGridCreator(0),
 	 handExtractor(0),addWaterFunction(0),addWaterFunctionRegistered(false),
 	 sun(0),
