@@ -52,10 +52,14 @@ void ControlWindow::setColor(unsigned long color)
 bool ControlWindow::isInteractiveAt(int x,int y) const
 	{
 	if(exportDialogVisible)
-		return exportDialogCancelRect.contains(x,y)||exportDialogOkRect.contains(x,y)||exportDialogInputRect.contains(x,y);
-	return exitButtonRect.contains(x,y)||freezeButtonRect.contains(x,y)||exportButtonRect.contains(x,y)||
-	       waterFlowTrackRect.contains(x,y)||drainButtonRect.contains(x,y)||
-	       sliderTrackRect.contains(x,y)||sliderApplyRect.contains(x,y);
+		{
+		const Rect cancelRect=scaledRect(exportDialogCancelRect);
+		const Rect okRect=scaledRect(exportDialogOkRect);
+		const Rect inputRect=scaledRect(exportDialogInputRect);
+		return cancelRect.contains(x,y)||okRect.contains(x,y)||inputRect.contains(x,y);
+		}
+	return scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||scaledRect(exportButtonRect).contains(x,y)||
+	       scaledRect(drainButtonRect).contains(x,y);
 	}
 
 unsigned long ControlWindow::resolveButtonFill(bool active,bool hovered) const
@@ -87,37 +91,22 @@ void ControlWindow::drawButton(const Rect& rect,const char* label,bool active,bo
 	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	setColor(colorButtonBorder);
 	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
-	drawCenteredText(rect, rect.y+rect.h/2+6,label,sectionFont,textColorOverride!=0?textColorOverride:colorText);
-}
-
-
-void ControlWindow::setWaterFlowFromMouse(int mouseX)
-	{
-	int minX=waterFlowTrackRect.x;
-	int maxX=waterFlowTrackRect.x+waterFlowTrackRect.w;
-	if(mouseX<minX)
-		mouseX=minX;
-	if(mouseX>maxX)
-		mouseX=maxX;
-	double t=double(mouseX-minX)/double(waterFlowTrackRect.w);
-	waterFlowRate=t;
+	drawCenteredText(rect, rect.y+rect.h/2+6,label,activeSectionFont(),textColorOverride!=0?textColorOverride:colorText);
 	}
 
-void ControlWindow::setAngleFromMouse(int mouseX)
+
+void ControlWindow::applyWindowState(void)
 	{
-	int minX=sliderTrackRect.x;
-	int maxX=sliderTrackRect.x+sliderTrackRect.w;
-	if(mouseX<minX)
-		mouseX=minX;
-	if(mouseX>maxX)
-		mouseX=maxX;
-	double t=double(mouseX-minX)/double(sliderTrackRect.w);
-	int newValue=int(t*22.0+0.5);
-	if(newValue<0)
-		newValue=0;
-	if(newValue>22)
-		newValue=22;
-	sliderAngleValue=newValue;
+	const int width=currentWindowWidth();
+	const int height=currentWindowHeight();
+	XResizeWindow(display,window,width,height);
+	XSizeHints sizeHints;
+	sizeHints.flags=PMinSize|PMaxSize;
+	sizeHints.min_width=width;
+	sizeHints.max_width=width;
+	sizeHints.min_height=height;
+	sizeHints.max_height=height;
+	XSetWMNormalHints(display,window,&sizeHints);
 	}
 
 void ControlWindow::updateCursor(int x,int y)
@@ -206,92 +195,86 @@ void ControlWindow::submitExportDialog(void)
 
 void ControlWindow::drawExportDialog(void)
 	{
+	const int width=currentWindowWidth();
+	const int height=currentWindowHeight();
+	const Rect dialogRect=scaledRect(exportDialogRect);
+	const Rect inputRect=scaledRect(exportDialogInputRect);
+	const Rect cancelRect=scaledRect(exportDialogCancelRect);
+	const Rect okRect=scaledRect(exportDialogOkRect);
+	XFontStruct* titleDisplayFont=activeTitleFont();
+	XFontStruct* section=activeSectionFont();
+
 	setColor(colorOverlay);
-	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
+	XFillRectangle(display,window,graphicsContext,0,0,width,height);
 
 	setColor(colorPanel);
-	XFillRectangle(display,window,graphicsContext,exportDialogRect.x,exportDialogRect.y,exportDialogRect.w,exportDialogRect.h);
+	XFillRectangle(display,window,graphicsContext,dialogRect.x,dialogRect.y,dialogRect.w,dialogRect.h);
 	setColor(colorBorder);
-	XDrawRectangle(display,window,graphicsContext,exportDialogRect.x,exportDialogRect.y,exportDialogRect.w,exportDialogRect.h);
+	XDrawRectangle(display,window,graphicsContext,dialogRect.x,dialogRect.y,dialogRect.w,dialogRect.h);
 
 	const char* title="Export Topography";
-	setFont(titleFont);
+	setFont(titleDisplayFont);
 	setColor(colorText);
-	XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+38,title,int(strlen(title)));
+	XDrawString(display,window,graphicsContext,dialogRect.x+24,dialogRect.y+52,title,int(strlen(title)));
 
 	const char* prompt="Please name your view";
-	setFont(sectionFont);
-	XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+78,prompt,int(strlen(prompt)));
+	setFont(section);
+	XDrawString(display,window,graphicsContext,dialogRect.x+24,dialogRect.y+102,prompt,int(strlen(prompt)));
 
 	setColor(colorInputBackground);
-	XFillRectangle(display,window,graphicsContext,exportDialogInputRect.x,exportDialogInputRect.y,exportDialogInputRect.w,exportDialogInputRect.h);
+	XFillRectangle(display,window,graphicsContext,inputRect.x,inputRect.y,inputRect.w,inputRect.h);
 	setColor(colorBorder);
-	XDrawRectangle(display,window,graphicsContext,exportDialogInputRect.x,exportDialogInputRect.y,exportDialogInputRect.w,exportDialogInputRect.h);
+	XDrawRectangle(display,window,graphicsContext,inputRect.x,inputRect.y,inputRect.w,inputRect.h);
 	setColor(colorText);
-	setFont(sectionFont);
-	XDrawString(display,window,graphicsContext,exportDialogInputRect.x+12,exportDialogInputRect.y+26,exportNameInput.c_str(),int(exportNameInput.size()));
+	setFont(section);
+	XDrawString(display,window,graphicsContext,inputRect.x+12,inputRect.y+30,exportNameInput.c_str(),int(exportNameInput.size()));
 	if(exportDialogVisible)
 		{
-		int textWidth=XTextWidth(sectionFont,exportNameInput.c_str(),int(exportNameInput.size()));
-		int cursorX=exportDialogInputRect.x+12+textWidth;
-		XDrawLine(display,window,graphicsContext,cursorX,exportDialogInputRect.y+8,cursorX,exportDialogInputRect.y+30);
+		int textWidth=XTextWidth(section,exportNameInput.c_str(),int(exportNameInput.size()));
+		int cursorX=inputRect.x+12+textWidth;
+		XDrawLine(display,window,graphicsContext,cursorX,inputRect.y+8,cursorX,inputRect.y+30);
 		}
 
 	if(!exportDialogErrorMessage.empty())
 		{
 		setColor(colorError);
-		XDrawString(display,window,graphicsContext,exportDialogRect.x+20,exportDialogRect.y+156,exportDialogErrorMessage.c_str(),int(exportDialogErrorMessage.size()));
+		XDrawString(display,window,graphicsContext,dialogRect.x+24,dialogRect.y+256,exportDialogErrorMessage.c_str(),int(exportDialogErrorMessage.size()));
 		}
 
-	drawButton(exportDialogCancelRect,"Cancel",false,exportDialogCancelRect.contains(hoverX,hoverY));
-	drawButton(exportDialogOkRect,"OK",false,exportDialogOkRect.contains(hoverX,hoverY),exportDialogOkRect.contains(hoverX,hoverY)?colorOkButtonHover:colorOkButton,colorText);
+	drawButton(cancelRect,"Cancel",false,cancelRect.contains(hoverX,hoverY));
+	drawButton(okRect,"OK",false,okRect.contains(hoverX,hoverY),okRect.contains(hoverX,hoverY)?colorOkButtonHover:colorOkButton,colorText);
 	}
 
 void ControlWindow::draw(void)
 	{
-	setFont(sectionFont);
+	const int width=currentWindowWidth();
+	const int height=currentWindowHeight();
+	const Rect exitRect=scaledRect(exitButtonRect);
+	const Rect freezeRect=scaledRect(freezeButtonRect);
+	const Rect exportRect=scaledRect(exportButtonRect);
+	const Rect drainRect=scaledRect(drainButtonRect);
+	XFontStruct* title=activeTitleFont();
+	XFontStruct* section=activeSectionFont();
+	XFontStruct* stat=activeStatFont();
+
+	setFont(section);
 	setColor(colorBackground);
-	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
+	XFillRectangle(display,window,graphicsContext,0,0,width,height);
 
 	setColor(colorPanel);
-	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,34);
+	XFillRectangle(display,window,graphicsContext,0,0,width,50);
 	setColor(colorBorder);
-	XDrawLine(display,window,graphicsContext,0,34,windowWidth,34);
+	XDrawLine(display,window,graphicsContext,0,50,width,50);
 
 	setColor(colorText);
-	setFont(titleFont);
-	XDrawString(display,window,graphicsContext,10,24,"Control Window V3",17);
+	setFont(title);
+	XDrawString(display,window,graphicsContext,10,38,"Control Window V3",17);
 
-	setFont(sectionFont);
+	setFont(title);
 	setColor(colorSubtleText);
-	XDrawString(display,window,graphicsContext,10,62,"Control for Stream Table",24);
-
-	setColor(colorText);
-	XDrawString(display,window,graphicsContext,10,102,"Table View: ",11);
-
-	XDrawString(display,window,graphicsContext,10,128,"Real World View",15);
-
-	const Rect waterFlowHeaderRect={10,150,360,32};
-	drawCenteredText(waterFlowHeaderRect,174,"Add Digital Water Flow Slider: ",sectionFont,colorText);
-	setColor(colorBorder);
-	XFillRectangle(display,window,graphicsContext,waterFlowTrackRect.x,waterFlowTrackRect.y+waterFlowTrackRect.h/2-2,waterFlowTrackRect.w,4);
-	int waterKnobX=waterFlowTrackRect.x+int(waterFlowRate*double(waterFlowTrackRect.w));
-	setColor(colorAccent);
-	XFillRectangle(display,window,graphicsContext,waterFlowTrackRect.x,waterFlowTrackRect.y+waterFlowTrackRect.h/2-2,waterKnobX-waterFlowTrackRect.x,4);
-	setColor(colorText);
-	XFillRectangle(display,window,graphicsContext,waterKnobX-6,waterFlowTrackRect.y+waterFlowTrackRect.h/2-9,12,18);
-	const Rect waterFlowLabelRect={10,220,360,26};
-	const bool waterFlowActive=waterFlowRate>0.01;
-	const char* waterFlowLabel="Off";
-	if(waterFlowRate>=0.67)
-		waterFlowLabel="Fast";
-	else if(waterFlowRate>=0.34)
-		waterFlowLabel="Medium";
-	else if(waterFlowActive)
-		waterFlowLabel="Slow";
-	drawCenteredText(waterFlowLabelRect,238,waterFlowLabel,sectionFont,colorSubtleText);
-	const char* drainButtonLabel=waterFlowActive?"Stop Digital Water Flow":"Hold to Drain Digital Water";
-	drawButton(drainButtonRect,drainButtonLabel,removeWaterOn,drainButtonRect.contains(hoverX,hoverY));
+	XDrawString(display,window,graphicsContext,10,98,"Control for Stream Table",24);
+	const char* drainButtonLabel="Hold to Drain Digital Water";
+	drawButton(drainRect,drainButtonLabel,removeWaterOn,drainRect.contains(hoverX,hoverY));
 
 	//Arduino loop
 	if (arduinoSensor->isActive()) {
@@ -299,49 +282,56 @@ void ControlWindow::draw(void)
     }
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
-	XDrawLine(display,window,graphicsContext,windowWidth/2,46,windowWidth/2,windowHeight-16);
+	XDrawLine(display,window,graphicsContext,width/2,62,width/2,height-16);
 
-	drawButton(exitButtonRect,"Exit",false,exitButtonRect.contains(hoverX,hoverY),colorError,colorText);
-	const Rect fpsRect={540,58,444,40};
-	const Rect angleRect={540,98,444,40};
+	drawButton(exitRect,"Exit",false,exitRect.contains(hoverX,hoverY),colorError,colorText);
+	Rect fpsBase={540,58,444,40};
+	Rect angleBase={540,98,444,40};
+	const Rect fpsRect=scaledRect(fpsBase);
+	const Rect angleRect=scaledRect(angleBase);
 	char fpsBuffer[48];
 	snprintf(fpsBuffer,sizeof(fpsBuffer),"FPS: %d",currentFps);
-	drawCenteredText(fpsRect,90,fpsBuffer,statFont,colorText);
+	XFontStruct* mediumLabelFont=titleFontLarge!=0?titleFontLarge:(statFont!=0?statFont:section);
+	drawCenteredText(fpsRect,fpsRect.y+35,fpsBuffer,mediumLabelFont,colorText);
 	char angleBuffer[48];
-	snprintf(angleBuffer,sizeof(angleBuffer),"Current Tilt Angle: %d",appliedAngleValue);
-	drawCenteredText(angleRect,130,angleBuffer,statFont,colorSuccess);
+	snprintf(angleBuffer,sizeof(angleBuffer),"Current Table Tilt: %d",appliedAngleValue);
+	drawCenteredText(angleRect,angleRect.y+35,angleBuffer,mediumLabelFont,colorSuccess);
 
 	/* Topography toggle and export button layout */
 	char freezeLabel[64];
 	snprintf(freezeLabel,sizeof(freezeLabel),"Freeze Topography: %s",freezeOn?"ON":"OFF");
-	drawButton(freezeButtonRect,freezeLabel,freezeOn,freezeButtonRect.contains(hoverX,hoverY));
-	drawButton(exportButtonRect,"Export Topography",exportInProgress,exportButtonRect.contains(hoverX,hoverY));
+	drawButton(freezeRect,freezeLabel,freezeOn,freezeRect.contains(hoverX,hoverY));
+	drawButton(exportRect,"Export Topography",exportInProgress,exportRect.contains(hoverX,hoverY));
 	
 	/*Screenshot message success or failure*/
 	if(!statusMessage.empty())
 		{
 		setColor(exportStatus==EXPORT_ERROR?colorError:(exportStatus==EXPORT_SUCCESS?colorSuccess:colorSubtleText));
-		XDrawString(display,window,graphicsContext,610,210,statusMessage.c_str(),int(statusMessage.size()));
+		Rect statusBase={540,222,444,44};
+		const Rect statusRect=scaledRect(statusBase);
+		drawCenteredText(statusRect,statusRect.y-20,statusMessage.c_str(),statFont!=0?statFont:section,exportStatus==EXPORT_ERROR?colorError:(exportStatus==EXPORT_SUCCESS?colorSuccess:colorSubtleText));
 		}
 
-	const Rect sliderHeaderRect={540,284,444,78};
-	setFont(statFont);
-	drawCenteredText(sliderHeaderRect,310,"Angle Selected:",statFont,colorText);
-	char selectedBuffer[48];
-	snprintf(selectedBuffer,sizeof(selectedBuffer),"%d",sliderAngleValue);
-	drawCenteredText(sliderHeaderRect,338,selectedBuffer,statFont,colorAccent);
-	setFont(titleFont);
-	drawCenteredText(sliderHeaderRect,366,"Table Tilt Slider (0 - 22 degrees): ",titleFont,colorText);
+	Rect tiltLabelBase={540,214,444,56};
+	const Rect tiltLabelRect=scaledRect(tiltLabelBase);
+	drawCenteredText(tiltLabelRect,tiltLabelRect.y+36,"Current Table Tilt",title,colorText);
 
+	Rect indicatorBase={670,266,180,180};
+	const Rect indicatorRect=scaledRect(indicatorBase);
+	const int centerX=indicatorRect.x+indicatorRect.w/2;
+	const int centerY=indicatorRect.y+indicatorRect.h/2;
+	const int radius=(indicatorRect.w<indicatorRect.h?indicatorRect.w:indicatorRect.h)/2;
+	setColor(colorSuccess);
+	XFillArc(display,window,graphicsContext,centerX-radius,centerY-radius,radius*2,radius*2,0,360*64);
 	setColor(colorBorder);
-	XFillRectangle(display,window,graphicsContext,sliderTrackRect.x,sliderTrackRect.y+sliderTrackRect.h/2-2,sliderTrackRect.w,4);
-	int knobX=sliderTrackRect.x+(sliderAngleValue*sliderTrackRect.w)/22;
-	setColor(colorAccent);
-	XFillRectangle(display,window,graphicsContext,sliderTrackRect.x,sliderTrackRect.y+sliderTrackRect.h/2-2,knobX-sliderTrackRect.x,4);
+	XDrawArc(display,window,graphicsContext,centerX-radius,centerY-radius,radius*2,radius*2,0,360*64);
+	char tiltValue[32];
+	snprintf(tiltValue,sizeof(tiltValue),"%d",appliedAngleValue);
+	XFontStruct* largeValueFont=statFontLarge!=0?statFontLarge:(titleFontLarge!=0?titleFontLarge:stat);
+	setFont(largeValueFont);
+	const int valueWidth=XTextWidth(largeValueFont,tiltValue,int(strlen(tiltValue)));
 	setColor(colorText);
-	XFillRectangle(display,window,graphicsContext,knobX-6,sliderTrackRect.y+sliderTrackRect.h/2-9,12,18);
-
-	drawButton(sliderApplyRect,"Apply",false,sliderApplyRect.contains(hoverX,hoverY));
+	XDrawString(display,window,graphicsContext,centerX-valueWidth/2,centerY+14,tiltValue,int(strlen(tiltValue)));
 
 	if(exportDialogVisible)
 		drawExportDialog();
@@ -351,9 +341,9 @@ void ControlWindow::draw(void)
 
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
-	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),unfreezeOn(false),removeWaterOn(false),draggingAngleSlider(false),draggingWaterFlowSlider(false),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 waterFlowRate(0.0),sliderAngleValue(0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
-	 titleFont(0),sectionFont(0),statFont(0),
+	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
+	 waterFlowRate(0.0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
+	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
 	 exportRequestName(),exportNameInput(),exportDialogErrorMessage(),statusMessage(),
@@ -364,7 +354,7 @@ ControlWindow::ControlWindow(void)
 		throw std::runtime_error("Unable to open X11 display for control window");
 
 	const int screen=DefaultScreen(display);
-	window=XCreateSimpleWindow(display,RootWindow(display,screen),80,80,windowWidth,windowHeight,1,BlackPixel(display,screen),BlackPixel(display,screen));
+	window=XCreateSimpleWindow(display,RootWindow(display,screen),80,80,minimizedWidth,minimizedHeight,1,BlackPixel(display,screen),BlackPixel(display,screen));
 	XStoreName(display,window,"GUI for Stream Table Control");
 	XSelectInput(display,window,ExposureMask|StructureNotifyMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask|EnterWindowMask|LeaveWindowMask|KeyPressMask);
 
@@ -379,21 +369,26 @@ ControlWindow::ControlWindow(void)
 	titleFont=XLoadQueryFont(display,"10x20");
 	sectionFont=XLoadQueryFont(display,"9x15");
 	statFont=XLoadQueryFont(display,"12x24");
+	titleFontLarge=XLoadQueryFont(display,"-misc-fixed-bold-r-normal--34-*-*-*-*-*-*-*");
+	sectionFontLarge=XLoadQueryFont(display,"10x20");
+	statFontLarge=XLoadQueryFont(display,"-misc-fixed-bold-r-normal--70-*-*-*-*-*-*-*");
+	if(statFontLarge==0)
+		statFontLarge=XLoadQueryFont(display,"-misc-fixed-bold-r-normal--48-*-*-*-*-*-*-*");
 	if(titleFont==0)
 		titleFont=XQueryFont(display,XGContextFromGC(DefaultGC(display,screen)));
 	if(sectionFont==0)
 		sectionFont=titleFont;
 	if(statFont==0)
 		statFont=titleFont;
+	if(titleFontLarge==0)
+		titleFontLarge=titleFont;
+	if(sectionFontLarge==0)
+		sectionFontLarge=sectionFont;
+	if(statFontLarge==0)
+		statFontLarge=statFont;
 	setFont(sectionFont);
 
-	XSizeHints sizeHints;
-	sizeHints.flags=PMinSize|PMaxSize;
-	sizeHints.min_width=windowWidth;
-	sizeHints.max_width=windowWidth;
-	sizeHints.min_height=windowHeight;
-	sizeHints.max_height=windowHeight;
-	XSetWMNormalHints(display,window,&sizeHints);
+	applyWindowState();
 
 	colorBackground=allocColor("#1a1b1f",BlackPixel(display,screen));
 	colorPanel=allocColor("#202227",BlackPixel(display,screen));
@@ -431,6 +426,12 @@ ControlWindow::~ControlWindow(void)
 			XFreeFont(display,sectionFont);
 		if(statFont!=0&&statFont!=titleFont&&statFont!=sectionFont)
 			XFreeFont(display,statFont);
+		if(titleFontLarge!=0&&titleFontLarge!=titleFont&&titleFontLarge!=sectionFont&&titleFontLarge!=statFont)
+			XFreeFont(display,titleFontLarge);
+		if(sectionFontLarge!=0&&sectionFontLarge!=titleFont&&sectionFontLarge!=sectionFont&&sectionFontLarge!=statFont&&sectionFontLarge!=titleFontLarge)
+			XFreeFont(display,sectionFontLarge);
+		if(statFontLarge!=0&&statFontLarge!=titleFont&&statFontLarge!=sectionFont&&statFontLarge!=statFont&&statFontLarge!=titleFontLarge&&statFontLarge!=sectionFontLarge)
+			XFreeFont(display,statFontLarge);
 		if(graphicsContext!=0)
 			XFreeGC(display,graphicsContext);
 		if(arrowCursor!=None)
@@ -513,10 +514,6 @@ bool ControlWindow::processEvents(void)
 			int mx=event.type==MotionNotify?event.xmotion.x:event.xcrossing.x;
 			int my=event.type==MotionNotify?event.xmotion.y:event.xcrossing.y;
 			updateCursor(mx,my);
-			if(draggingAngleSlider)
-				setAngleFromMouse(mx);
-			if(draggingWaterFlowSlider)
-				setWaterFlowFromMouse(mx);
 			draw();
 			}
 		else if(event.type==LeaveNotify)
@@ -530,53 +527,36 @@ bool ControlWindow::processEvents(void)
 			const int x=event.xbutton.x;
 			const int y=event.xbutton.y;
 			updateCursor(x,y);
-			if(exportDialogVisible)
-				{
-				if(exportDialogCancelRect.contains(x,y))
+				const Rect exitRect=scaledRect(exitButtonRect);
+				const Rect freezeRect=scaledRect(freezeButtonRect);
+				const Rect exportRect=scaledRect(exportButtonRect);
+			const Rect drainRect=scaledRect(drainButtonRect);
+				const Rect cancelRect=scaledRect(exportDialogCancelRect);
+				const Rect okRect=scaledRect(exportDialogOkRect);
+				if(exportDialogVisible)
+					{
+				if(cancelRect.contains(x,y))
 					closeExportDialog();
-				else if(exportDialogOkRect.contains(x,y))
+				else if(okRect.contains(x,y))
 					submitExportDialog();
-				}
-			else if(exitButtonRect.contains(x,y))
+					}
+			else if(exitRect.contains(x,y))
 				closeRequested=true;
-			else if(freezeButtonRect.contains(x,y))
+			else if(freezeRect.contains(x,y))
 				freezeOn=!freezeOn;
-			else if(exportButtonRect.contains(x,y))
+			else if(exportRect.contains(x,y))
 				{
 				exportNameInput.clear();
 				openExportDialog();
 				}
-			else if(waterFlowTrackRect.contains(x,y))
+			else if(drainRect.contains(x,y))
 				{
-				draggingWaterFlowSlider=true;
-				setWaterFlowFromMouse(x);
-				}
-			else if(drainButtonRect.contains(x,y))
-				{
-				draggingWaterFlowSlider=false;
-				if(waterFlowRate>0.01)
-					{
-					waterFlowRate=0.0;
-					removeWaterOn=false;
-					}
-				else
-					removeWaterOn=true;
-				}
-			else if(sliderTrackRect.contains(x,y))
-				{
-				draggingAngleSlider=true;
-				setAngleFromMouse(x);
-				}
-			else if(sliderApplyRect.contains(x,y))
-				{
-				//appliedAngleValue=sliderAngleValue;
+				removeWaterOn=true;
 				}
 			draw();
 			}
 		else if(event.type==ButtonRelease)
 			{
-			draggingAngleSlider=false;
-			draggingWaterFlowSlider=false;
 			if(event.xbutton.button==Button1)
 				removeWaterOn=false;
 			draw();
@@ -616,13 +596,10 @@ bool ControlWindow::processEvents(void)
 	return closeRequested;
 	}
 
-const ControlWindow::Rect ControlWindow::exitButtonRect={844,500,140,40};
+const ControlWindow::Rect ControlWindow::exitButtonRect={844,468,140,40};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
-const ControlWindow::Rect ControlWindow::waterFlowTrackRect={24,190,332,28};
-const ControlWindow::Rect ControlWindow::drainButtonRect={24,258,332,40};
-const ControlWindow::Rect ControlWindow::sliderTrackRect={540,392,444,28};
-const ControlWindow::Rect ControlWindow::sliderApplyRect={872,442,112,36};
+const ControlWindow::Rect ControlWindow::drainButtonRect={24,130,420,56};
 const ControlWindow::Rect ControlWindow::exportDialogRect={300,150,420,220};
 const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
 const ControlWindow::Rect ControlWindow::exportDialogCancelRect={320,315,120,34};
@@ -636,5 +613,42 @@ bool ControlWindow::getDrainState(void) const
 
 double ControlWindow::getWaterFlowRate(void) const
 	{
-	return waterFlowRate;
+	return 0.0;
+	}
+
+int ControlWindow::currentWindowWidth(void) const
+	{
+	return isMaximized?maximizedWidth:minimizedWidth;
+	}
+
+int ControlWindow::currentWindowHeight(void) const
+	{
+	return isMaximized?maximizedHeight:minimizedHeight;
+	}
+
+XFontStruct* ControlWindow::activeTitleFont(void) const
+	{
+	return isMaximized&&titleFontLarge!=0?titleFontLarge:titleFont;
+	}
+
+XFontStruct* ControlWindow::activeSectionFont(void) const
+	{
+	return isMaximized&&sectionFontLarge!=0?sectionFontLarge:sectionFont;
+	}
+
+XFontStruct* ControlWindow::activeStatFont(void) const
+	{
+	return isMaximized&&statFontLarge!=0?statFontLarge:statFont;
+	}
+
+ControlWindow::Rect ControlWindow::scaledRect(const Rect& rect) const
+	{
+	const double sx=double(currentWindowWidth())/double(minimizedWidth);
+	const double sy=double(currentWindowHeight())/double(minimizedHeight);
+	Rect result;
+	result.x=int(rect.x*sx+0.5);
+	result.y=int(rect.y*sy+0.5);
+	result.w=int(rect.w*sx+0.5);
+	result.h=int(rect.h*sy+0.5);
+	return result;
 	}

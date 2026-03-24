@@ -18,18 +18,16 @@ class ControlWindow
 		bool contains(int px,int py) const;
 		};
 
-	static const int windowWidth=1020;
-	static const int windowHeight=560;
+	static const int minimizedWidth=1020;
+	static const int minimizedHeight=560;
+	static const int maximizedWidth=1920;
+	static const int maximizedHeight=1080;
 	static const int exportNameMaxLength=36;
 
 	static const Rect exitButtonRect;
 	static const Rect freezeButtonRect;
 	static const Rect exportButtonRect;
-	static const Rect unfreezeButtonRect;
-	static const Rect waterFlowTrackRect;
 	static const Rect drainButtonRect;
-	static const Rect sliderTrackRect;
-	static const Rect sliderApplyRect;
 	static const Rect exportDialogRect;
 	static const Rect exportDialogInputRect;
 	static const Rect exportDialogCancelRect;
@@ -47,16 +45,13 @@ class ControlWindow
 	bool freezeOn;
 	bool exportRequested;
 	bool exportInProgress;
-	bool unfreezeOn;
+	bool isMaximized;
 	bool removeWaterOn;
-	bool draggingAngleSlider;
-	bool draggingWaterFlowSlider;
 	bool hoverInteractive;
 	bool exportDialogVisible;
 	int hoverX;
 	int hoverY;
 	double waterFlowRate;
-	int sliderAngleValue;
 	int appliedAngleValue;
     int currentFps;
 	SensorUtility* arduinoSensor;
@@ -65,6 +60,9 @@ class ControlWindow
     XFontStruct* titleFont;
     XFontStruct* sectionFont;
     XFontStruct* statFont;
+    XFontStruct* titleFontLarge;
+    XFontStruct* sectionFontLarge;
+    XFontStruct* statFontLarge;
 
 	unsigned long colorBackground;
 	unsigned long colorPanel;
@@ -95,8 +93,7 @@ class ControlWindow
     void setFont(XFontStruct* font);
     void drawCenteredText(const Rect& rect,int baselineY,const char* label,XFontStruct* font,unsigned long color);
     void drawButton(const Rect& rect,const char* label,bool active=false,bool hovered=false,unsigned long fillColorOverride=0,unsigned long textColorOverride=0);
-	void setWaterFlowFromMouse(int mouseX);
-	void setAngleFromMouse(int mouseX);
+	void applyWindowState(void);
 	void updateCursor(int x,int y);
 	void openExportDialog(void);
 	void closeExportDialog(void);
@@ -105,6 +102,12 @@ class ControlWindow
 	void submitExportDialog(void);
 	void drawExportDialog(void);
 	void draw(void);
+	int currentWindowWidth(void) const;
+	int currentWindowHeight(void) const;
+	XFontStruct* activeTitleFont(void) const;
+	XFontStruct* activeSectionFont(void) const;
+	XFontStruct* activeStatFont(void) const;
+	Rect scaledRect(const Rect& rect) const;
 
 	
 	public:
