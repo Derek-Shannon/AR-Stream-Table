@@ -28,6 +28,11 @@ class ControlWindow
 	static const Rect freezeButtonRect;
 	static const Rect exportButtonRect;
 	static const Rect drainButtonRect;
+	static const Rect contourIntervalLabelRect;
+	static const Rect contourIntervalButton075Rect;
+	static const Rect contourIntervalButton1Rect;
+	static const Rect contourIntervalButton2Rect;
+	static const Rect contourIntervalButton4Rect;
 	static const Rect exportDialogRect;
 	static const Rect exportDialogInputRect;
 	static const Rect exportDialogCancelRect;
@@ -47,6 +52,7 @@ class ControlWindow
 	bool exportInProgress;
 	bool isMaximized;
 	bool removeWaterOn;
+	double contourLineInterval;
 	bool hoverInteractive;
 	bool exportDialogVisible;
 	int hoverX;
@@ -128,6 +134,7 @@ class ControlWindow
 
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
+	double getContourLineInterval(void) const;
 	double getWaterFlowRate(void) const;
 	void setFreezeState(bool state);
 	void setWaterFlowRate(double newWaterFlowRate);

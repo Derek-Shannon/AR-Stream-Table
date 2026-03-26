@@ -765,7 +765,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 gridPropertyFileHelper(Vrui::getWidgetManager(),"GridProperty.tiff",".tif;.tiff"),
 	 waterControlDialog(0),
 	 snowLineSlider(0),waterSpeedSlider(0),waterMaxStepsSlider(0),frameRateTextField(0),waterAttenuationSlider(0),
-	 controlWindow(0),
+	 controlWindow(0),uiContourLineSpacing(0.75f),
 	 exportScreenshotPending(false),exportScreenshotRequestTime(0.0),exportStatusTime(-1.0),exportScreenshotFileName(),
 	 controlPipeFd(-1)
 	{
@@ -1503,6 +1503,17 @@ void Sandbox::frame(void)
 			pauseUpdates=controlWindow->getFreezeState();
 			if(pauseUpdatesToggle!=0)
 				pauseUpdatesToggle->setToggle(pauseUpdates);
+			}
+		const GLfloat selectedContourLineSpacing=GLfloat(controlWindow->getContourLineInterval());
+		if(selectedContourLineSpacing>0.0f&&selectedContourLineSpacing!=uiContourLineSpacing)
+			{
+			uiContourLineSpacing=selectedContourLineSpacing;
+			for(std::vector<RenderSettings>::iterator rsIt=renderSettings.begin();rsIt!=renderSettings.end();++rsIt)
+				{
+				rsIt->contourLineSpacing=uiContourLineSpacing;
+				if(rsIt->surfaceRenderer!=0)
+					rsIt->surfaceRenderer->setContourLineDistance(uiContourLineSpacing);
+				}
 			}
 		if(waterTable!=0)
 			{
