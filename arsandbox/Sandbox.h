@@ -238,6 +238,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	GLMotif::FileSelectionHelper gridPropertyFileHelper; // Helper object to load/save grid property from/to files
 	GLMotif::PopupWindow* waterControlDialog;
 	ControlWindow* controlWindow;
+	GLfloat uiContourLineSpacing; // Contour interval selected in the control window
 	GLMotif::TextFieldSlider* snowLineSlider;
 	GLMotif::TextFieldSlider* snowMeltSlider;
 	GLMotif::TextFieldSlider* waterSpeedSlider;
