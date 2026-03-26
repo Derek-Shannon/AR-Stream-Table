@@ -1464,7 +1464,7 @@ void Sandbox::frame(void)
 	{	
 		/* --- CUSTOM TILT LOGIC START --- */
 		// 1. Fetch Roll instead of Pitch
-		float rollDegrees = 15; //sensor.getRoll(); 
+		float rollDegrees = 0; //sensor.getRoll(); 
 		
 		double rollRads = rollDegrees * (M_PI / 180.0);
 		double cosR = cos(rollRads);
@@ -1477,17 +1477,16 @@ void Sandbox::frame(void)
 		Geometry::Vector<double,3> newNormal = origNormal * cosR + tableAxisX * sinR;
 		newNormal.normalize();
 		
-		// 3. Recalculate the plane offset to keep it centered
-		double newOffset = newNormal*originalBoxCenter + newNormal*originalBoxCenter + newNormal*originalBoxCenter;
-		
 		// 4. Update the renderer with the new Roll-adjusted plane
-		Geometry::Plane<double,3> tiltedPlane(newNormal, newOffset);
+		Geometry::Plane<double,3> tiltedPlane(newNormal, originalBoxCenter);
 		depthImageRenderer->setBasePlane(tiltedPlane);
 		
 		// 5. Update the contour line projection
-		for(std::vector<RenderSettings>::iterator rsIt=renderSettings.begin();rsIt!=renderSettings.end();++rsIt) {
-			if(rsIt->elevationColorMap!=0) {
-				rsIt->elevationColorMap->calcTexturePlane(depthImageRenderer);
+		for(size_t i=0; i<renderSettings.size(); ++i)
+		{
+			if(renderSettings[i].elevationColorMap != 0)
+			{
+				renderSettings[i].elevationColorMap->calcTexturePlane(depthImageRenderer);
 			}
 		}
 		/* --- CUSTOM TILT LOGIC END --- */
