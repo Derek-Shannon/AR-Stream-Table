@@ -23,6 +23,8 @@ class ControlWindow
 	static const int maximizedWidth=1920;
 	static const int maximizedHeight=1080;
 	static const int exportNameMaxLength=36;
+	static const int testingTiltMin=0;
+	static const int testingTiltMax=22;
 
 	static const Rect exitButtonRect;
 	static const Rect freezeButtonRect;
@@ -33,6 +35,9 @@ class ControlWindow
 	static const Rect contourIntervalButton1Rect;
 	static const Rect contourIntervalButton2Rect;
 	static const Rect contourIntervalButton4Rect;
+	static const Rect testingLabelRect;
+	static const Rect testingCheckboxRect;
+	static const Rect testingSliderRect;
 	static const Rect exportDialogRect;
 	static const Rect exportDialogInputRect;
 	static const Rect exportDialogCancelRect;
@@ -59,6 +64,10 @@ class ControlWindow
 	int hoverY;
 	double waterFlowRate;
 	int appliedAngleValue;
+	int sensorAngleValue;
+	int testingTiltValue;
+	bool testingEnabled;
+	bool testingSliderDragging;
     int currentFps;
 	SensorUtility* arduinoSensor;
 
@@ -135,6 +144,7 @@ class ControlWindow
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
 	double getContourLineInterval(void) const;
+	int getAppliedTiltValue(void) const;
 	double getWaterFlowRate(void) const;
 	void setFreezeState(bool state);
 	void setWaterFlowRate(double newWaterFlowRate);

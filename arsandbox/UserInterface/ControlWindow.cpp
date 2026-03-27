@@ -61,7 +61,8 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 	return scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||scaledRect(exportButtonRect).contains(x,y)||
 	       scaledRect(drainButtonRect).contains(x,y)||
 	       scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
-	       scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y);
+	       scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y)||
+	       scaledRect(testingCheckboxRect).contains(x,y)||scaledRect(testingSliderRect).contains(x,y);
 	}
 
 unsigned long ControlWindow::resolveButtonFill(bool active,bool hovered) const
@@ -260,6 +261,9 @@ void ControlWindow::draw(void)
 	const Rect contour1Rect=scaledRect(contourIntervalButton1Rect);
 	const Rect contour2Rect=scaledRect(contourIntervalButton2Rect);
 	const Rect contour4Rect=scaledRect(contourIntervalButton4Rect);
+	const Rect testingLabelRectScaled=scaledRect(testingLabelRect);
+	const Rect testingCheckboxRectScaled=scaledRect(testingCheckboxRect);
+	const Rect testingSliderRectScaled=scaledRect(testingSliderRect);
 	XFontStruct* title=activeTitleFont();
 	XFontStruct* section=activeSectionFont();
 	XFontStruct* stat=activeStatFont();
@@ -289,9 +293,40 @@ void ControlWindow::draw(void)
 	drawButton(contour4Rect,"4 cm",fabs(contourLineInterval-4.0)<1.0e-6,contour4Rect.contains(hoverX,hoverY));
 
 	//Arduino loop
-	if (arduinoSensor->isActive()) {
-        appliedAngleValue =  int(arduinoSensor->getRoll());
-    }
+	if(arduinoSensor->isActive())
+		sensorAngleValue=int(arduinoSensor->getRoll());
+	appliedAngleValue=testingEnabled?testingTiltValue:sensorAngleValue;
+
+	drawCenteredText(testingLabelRectScaled,testingLabelRectScaled.y+30,"Just for SEECS testing",section,colorSubtleText);
+	setColor(colorBorder);
+	XDrawRectangle(display,window,graphicsContext,testingCheckboxRectScaled.x,testingCheckboxRectScaled.y,testingCheckboxRectScaled.w,testingCheckboxRectScaled.h);
+	if(testingEnabled)
+		{
+		setColor(colorSuccess);
+		XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+3,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h/2,
+		          testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4);
+		XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4,
+		          testingCheckboxRectScaled.x+testingCheckboxRectScaled.w-3,testingCheckboxRectScaled.y+3);
+		}
+	setColor(colorText);
+	setFont(section);
+	XDrawString(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w+12,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-6,"Enable for testing",18);
+	const int clampedTilt=testingTiltValue<testingTiltMin?testingTiltMin:(testingTiltValue>testingTiltMax?testingTiltMax:testingTiltValue);
+	setColor(testingEnabled?colorButtonBorder:colorBorder);
+	XDrawRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-3,testingSliderRectScaled.w,6);
+	setColor(testingEnabled?colorAccent:colorBorder);
+	const int sliderFillWidth=((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
+	XFillRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-2,sliderFillWidth,4);
+	const int sliderY=testingSliderRectScaled.y+testingSliderRectScaled.h/2;
+	const int handleX=testingSliderRectScaled.x+((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
+	setColor(testingEnabled?colorText:colorSubtleText);
+	XFillArc(display,window,graphicsContext,handleX-8,sliderY-8,16,16,0,360*64);
+	char sliderBuffer[80];
+	snprintf(sliderBuffer,sizeof(sliderBuffer),"Mock Tilt: %d deg",testingTiltValue);
+	setColor(testingEnabled?colorText:colorSubtleText);
+	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y-8,sliderBuffer,int(strlen(sliderBuffer)));
+	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"0 deg",5);
+	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x+testingSliderRectScaled.w-36,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"22 deg",6);
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
 	XDrawLine(display,window,graphicsContext,width/2,62,width/2,height-16);
@@ -354,7 +389,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 waterFlowRate(0.0),appliedAngleValue(0), currentFps(0), arduinoSensor(0),
+	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0),
 	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
@@ -525,6 +560,16 @@ bool ControlWindow::processEvents(void)
 			{
 			int mx=event.type==MotionNotify?event.xmotion.x:event.xcrossing.x;
 			int my=event.type==MotionNotify?event.xmotion.y:event.xcrossing.y;
+			if(event.type==MotionNotify&&testingSliderDragging)
+				{
+				const Rect testingSlider=scaledRect(testingSliderRect);
+				const int dx=mx-testingSlider.x;
+				testingTiltValue=testingTiltMin+(dx*(testingTiltMax-testingTiltMin))/testingSlider.w;
+				if(testingTiltValue<testingTiltMin)
+					testingTiltValue=testingTiltMin;
+				if(testingTiltValue>testingTiltMax)
+					testingTiltValue=testingTiltMax;
+				}
 			updateCursor(mx,my);
 			draw();
 			}
@@ -547,6 +592,8 @@ bool ControlWindow::processEvents(void)
 			const Rect contour1Rect=scaledRect(contourIntervalButton1Rect);
 			const Rect contour2Rect=scaledRect(contourIntervalButton2Rect);
 			const Rect contour4Rect=scaledRect(contourIntervalButton4Rect);
+			const Rect testingCheckbox=scaledRect(testingCheckboxRect);
+			const Rect testingSlider=scaledRect(testingSliderRect);
 				const Rect cancelRect=scaledRect(exportDialogCancelRect);
 				const Rect okRect=scaledRect(exportDialogOkRect);
 				if(exportDialogVisible)
@@ -577,12 +624,27 @@ bool ControlWindow::processEvents(void)
 				contourLineInterval=2.0;
 			else if(contour4Rect.contains(x,y))
 				contourLineInterval=4.0;
+			else if(testingCheckbox.contains(x,y))
+				{
+				testingEnabled=!testingEnabled;
+				}
+			else if(testingEnabled&&testingSlider.contains(x,y))
+				{
+				const int dx=x-testingSlider.x;
+				testingTiltValue=testingTiltMin+(dx*(testingTiltMax-testingTiltMin))/testingSlider.w;
+				if(testingTiltValue<testingTiltMin)
+					testingTiltValue=testingTiltMin;
+				if(testingTiltValue>testingTiltMax)
+					testingTiltValue=testingTiltMax;
+				testingSliderDragging=true;
+				}
 			draw();
 			}
 		else if(event.type==ButtonRelease)
 			{
 			if(event.xbutton.button==Button1)
 				removeWaterOn=false;
+			testingSliderDragging=false;
 			draw();
 			}
 		else if(event.type==KeyPress)
@@ -629,6 +691,9 @@ const ControlWindow::Rect ControlWindow::contourIntervalButton075Rect={24,250,20
 const ControlWindow::Rect ControlWindow::contourIntervalButton1Rect={238,250,206,56};
 const ControlWindow::Rect ControlWindow::contourIntervalButton2Rect={24,314,206,56};
 const ControlWindow::Rect ControlWindow::contourIntervalButton4Rect={238,314,206,56};
+const ControlWindow::Rect ControlWindow::testingLabelRect={24,392,420,36};
+const ControlWindow::Rect ControlWindow::testingCheckboxRect={24,438,16,16};
+const ControlWindow::Rect ControlWindow::testingSliderRect={24,480,320,36};
 const ControlWindow::Rect ControlWindow::exportDialogRect={300,150,420,220};
 const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
 const ControlWindow::Rect ControlWindow::exportDialogCancelRect={320,315,120,34};
@@ -643,6 +708,11 @@ bool ControlWindow::getDrainState(void) const
 double ControlWindow::getContourLineInterval(void) const
 	{
 	return contourLineInterval;
+	}
+
+int ControlWindow::getAppliedTiltValue(void) const
+	{
+	return testingEnabled?testingTiltValue:sensorAngleValue;
 	}
 
 double ControlWindow::getWaterFlowRate(void) const
