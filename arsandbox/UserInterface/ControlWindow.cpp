@@ -279,7 +279,7 @@ void ControlWindow::draw(void)
 
 	setColor(colorText);
 	setFont(title);
-	XDrawString(display,window,graphicsContext,10,38,"Control Window V3",17);
+	XDrawString(display,window,graphicsContext,10,38,"Control Window V4",17);
 
 	setFont(title);
 	setColor(colorSubtleText);
@@ -310,7 +310,7 @@ void ControlWindow::draw(void)
 		}
 	setColor(colorText);
 	setFont(section);
-	XDrawString(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w+12,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-6,"Enable for testing",18);
+	XDrawString(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w+12,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-6,"Enable for testing just for SEECS",33);
 	const int clampedTilt=testingTiltValue<testingTiltMin?testingTiltMin:(testingTiltValue>testingTiltMax?testingTiltMax:testingTiltValue);
 	setColor(testingEnabled?colorButtonBorder:colorBorder);
 	XDrawRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-3,testingSliderRectScaled.w,6);

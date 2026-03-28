@@ -1461,10 +1461,12 @@ bool Sandbox::ensureExportDirectory(const char* directory)
 	}
 
 void Sandbox::frame(void)
-	{	
+	{
 		/* --- CUSTOM TILT LOGIC START --- */
 		// Fetch Roll
-		float rollDegrees = 0; //sensor.getRoll(); 
+		float rollDegrees = 0.0f; //sensor.getRoll();
+		if(controlWindow!=0)
+			rollDegrees=float(controlWindow->getAppliedTiltValue());
 		
 		double rollRads = rollDegrees * (M_PI / 180.0);
 		double cosR = cos(rollRads);
