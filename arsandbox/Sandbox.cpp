@@ -1461,27 +1461,29 @@ bool Sandbox::ensureExportDirectory(const char* directory)
 	}
 
 void Sandbox::frame(void)
-	{	
+	{
 		/* --- CUSTOM TILT LOGIC START --- */
-		// 1. Fetch Roll instead of Pitch
-		float rollDegrees = 0; //sensor.getRoll(); 
+		// Fetch Roll
+		float rollDegrees = 0.0f; //sensor.getRoll();
+		if(controlWindow!=0)
+			rollDegrees=float(controlWindow->getAppliedTiltValue());
 		
 		double rollRads = rollDegrees * (M_PI / 180.0);
 		double cosR = cos(rollRads);
 		double sinR = sin(rollRads);
 		
-		// 2. Rotate the normal vector based on the X-axis (Roll)
+		// Rotate the normal vector based on the X-axis (Roll)
 		Geometry::Vector<double,3> origNormal = originalBasePlane.getNormal();
 		
 		// We use tableAxisX here for a side-to-side tilt
 		Geometry::Vector<double,3> newNormal = origNormal * cosR + tableAxisX * sinR;
 		newNormal.normalize();
 		
-		// 4. Update the renderer with the new Roll-adjusted plane
+		// Update the renderer with the new adjusted plane
 		Geometry::Plane<double,3> tiltedPlane(newNormal, originalBoxCenter);
 		depthImageRenderer->setBasePlane(tiltedPlane);
 		
-		// 5. Update the contour line projection
+		// Update the contour line projection
 		for(size_t i=0; i<renderSettings.size(); ++i)
 		{
 			if(renderSettings[i].elevationColorMap != 0)
@@ -1490,6 +1492,7 @@ void Sandbox::frame(void)
 			}
 		}
 		/* --- CUSTOM TILT LOGIC END --- */
+
 		if(controlWindow!=0)
 		{
 		const double currentFrameTime=Vrui::getCurrentFrameTime();
