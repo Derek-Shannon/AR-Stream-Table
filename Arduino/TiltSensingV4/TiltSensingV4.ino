@@ -9,14 +9,10 @@ Adafruit_MPU6050 mpu;
 float filteredX = 0;
 float filteredY = 0;
 float filteredZ = 0;
-float alpha = 0.1; //Adjust this (0.05 to 0.5) to balance smoothness vs lag
+float alpha = 0.05; //Adjust this (0.05 to 0.5) to balance smoothness vs lag
 
-//Averaging variables
-float sumPitch = 0;
-float sumRoll = 0;
-int sampleCount = 0;
 unsigned long lastReportTime = 0;
-const unsigned long reportInterval = 500; // 0.5 seconds
+const unsigned long reportInterval = 33; // 0.033 seconds or about 30fps
 
 void setup() {
   Serial.begin(115200);
@@ -48,15 +44,8 @@ void loop() {
   float roll = atan2(filteredY, -filteredZ) * 180.0 / M_PI;
   float pitch = atan2(-filteredX, sqrt(filteredY * filteredY + filteredZ * filteredZ)) * 180.0 / M_PI;
 
-  //add for the average
-  sumPitch += pitch;
-  sumRoll += roll;
-  sampleCount++;
-
   //send to output 
   if (millis() - lastReportTime >= reportInterval) {
-    float avgPitch = sumPitch / sampleCount;
-    float avgRoll = sumRoll / sampleCount;
 
     //send data <Pitch,Roll>
     Serial.print("<");
@@ -66,9 +55,6 @@ void loop() {
     Serial.println(">");
 
     //reset counts
-    sumPitch = 0;
-    sumRoll = 0;
-    sampleCount = 0;
     lastReportTime = millis();
   }
 
