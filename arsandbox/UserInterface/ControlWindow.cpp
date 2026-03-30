@@ -292,6 +292,7 @@ void ControlWindow::draw(void)
 	drawButton(contour2Rect,"2 cm",fabs(contourLineInterval-2.0)<1.0e-6,contour2Rect.contains(hoverX,hoverY));
 	drawButton(contour4Rect,"4 cm",fabs(contourLineInterval-4.0)<1.0e-6,contour4Rect.contains(hoverX,hoverY));
 
+	// Test
 	//Arduino loop
 	float previousSensorAngleValue = sensorAngleValue;
 	if(arduinoSensor->isActive())
