@@ -63,8 +63,8 @@ class ControlWindow
 	int hoverX;
 	int hoverY;
 	double waterFlowRate;
-	int appliedAngleValue;
-	int sensorAngleValue;
+	float appliedAngleValue;
+	float sensorAngleValue;
 	int testingTiltValue;
 	bool testingEnabled;
 	bool testingSliderDragging;
@@ -144,7 +144,7 @@ class ControlWindow
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
 	double getContourLineInterval(void) const;
-	int getAppliedTiltValue(void) const;
+	float getAppliedTiltValue(void) const;
 	double getWaterFlowRate(void) const;
 	void setFreezeState(bool state);
 	void setWaterFlowRate(double newWaterFlowRate);

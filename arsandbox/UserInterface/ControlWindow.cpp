@@ -293,9 +293,13 @@ void ControlWindow::draw(void)
 	drawButton(contour4Rect,"4 cm",fabs(contourLineInterval-4.0)<1.0e-6,contour4Rect.contains(hoverX,hoverY));
 
 	//Arduino loop
+	float previousSensorAngleValue = sensorAngleValue;
 	if(arduinoSensor->isActive())
-		sensorAngleValue=int(arduinoSensor->getRoll());
-	appliedAngleValue=testingEnabled?testingTiltValue:sensorAngleValue;
+		sensorAngleValue = arduinoSensor->getRoll();
+	if (std::abs(sensorAngleValue - previousSensorAngleValue) < 0.15f) {
+        sensorAngleValue = previousSensorAngleValue;
+    }
+	appliedAngleValue=testingEnabled?testingTiltValue:int(sensorAngleValue* 10.0f) / 10.0f;
 
 	drawCenteredText(testingLabelRectScaled,testingLabelRectScaled.y+30,"Just for SEECS testing",section,colorSubtleText);
 	setColor(colorBorder);
@@ -341,7 +345,7 @@ void ControlWindow::draw(void)
 	XFontStruct* mediumLabelFont=titleFontLarge!=0?titleFontLarge:(statFont!=0?statFont:section);
 	drawCenteredText(fpsRect,fpsRect.y+35,fpsBuffer,mediumLabelFont,colorText);
 	char angleBuffer[48];
-	snprintf(angleBuffer,sizeof(angleBuffer),"Current Table Tilt: %d",appliedAngleValue);
+	snprintf(angleBuffer,sizeof(angleBuffer),"Current Table Tilt: %.1f",appliedAngleValue);
 	drawCenteredText(angleRect,angleRect.y+35,angleBuffer,mediumLabelFont,colorSuccess);
 
 	/* Topography toggle and export button layout */
@@ -373,7 +377,7 @@ void ControlWindow::draw(void)
 	setColor(colorBorder);
 	XDrawArc(display,window,graphicsContext,centerX-radius,centerY-radius,radius*2,radius*2,0,360*64);
 	char tiltValue[32];
-	snprintf(tiltValue,sizeof(tiltValue),"%d",appliedAngleValue);
+	snprintf(tiltValue,sizeof(tiltValue),"%.1f",appliedAngleValue);
 	XFontStruct* largeValueFont=statFontLarge!=0?statFontLarge:(titleFontLarge!=0?titleFontLarge:stat);
 	setFont(largeValueFont);
 	const int valueWidth=XTextWidth(largeValueFont,tiltValue,int(strlen(tiltValue)));
@@ -710,7 +714,7 @@ double ControlWindow::getContourLineInterval(void) const
 	return contourLineInterval;
 	}
 
-int ControlWindow::getAppliedTiltValue(void) const
+float ControlWindow::getAppliedTiltValue(void) const
 	{
 	return testingEnabled?testingTiltValue:sensorAngleValue;
 	}

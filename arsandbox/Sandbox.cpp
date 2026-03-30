@@ -1467,6 +1467,7 @@ void Sandbox::frame(void)
 		float rollDegrees = 0.0f; //sensor.getRoll();
 		if(controlWindow!=0)
 			rollDegrees=float(controlWindow->getAppliedTiltValue());
+		//std::cerr<<"rollDegrees: " << rollDegrees <<std::endl;
 		
 		double rollRads = rollDegrees * (M_PI / 180.0);
 		double cosR = cos(rollRads);
