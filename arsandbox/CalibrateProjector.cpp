@@ -51,6 +51,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <Kinect/MultiplexedFrameSource.h>
 
 #include "Config.h"
+#include "UserInterface/ProjectorCalibrationWindow.h"
 
 /********************************************************
 Static elements of class CalibrateProjector::CaptureTool:
@@ -121,11 +122,13 @@ void CalibrateProjector::backgroundCaptureCompleteCallback(Kinect::DirectFrameSo
 	/* Reset the background capture flag: */
 	std::cout<<" done"<<std::endl;
 	capturingBackground=false;
+	tiePointCaptureFailed=false;
 	
 	/* Enable background removal: */
 	dynamic_cast<Kinect::DirectFrameSource*>(camera)->setRemoveBackground(true);
 	
 	/* Wake up the foreground thread: */
+	updateStatusUi(0);
 	Vrui::requestUpdate();
 	}
 
@@ -135,9 +138,37 @@ void CalibrateProjector::diskExtractionCallback(const Kinect::DiskExtractor::Dis
 	Kinect::DiskExtractor::DiskList& newList=diskList.startNewValue();
 	newList=disks;
 	diskList.postNewValue();
+	updateStatusUi(&disks);
 	
 	/* Wake up the main thread: */
 	Vrui::requestUpdate();
+	}
+
+void CalibrateProjector::capturePointButtonCallback(Misc::CallbackData* cbData)
+	{
+	(void)cbData;
+	startTiePointCapture();
+	}
+
+void CalibrateProjector::recaptureBackgroundButtonCallback(Misc::CallbackData* cbData)
+	{
+	(void)cbData;
+	startBackgroundCapture();
+	}
+
+void CalibrateProjector::updateStatusUi(const Kinect::DiskExtractor::DiskList* disks)
+	{
+	/* Bail out if the companion UI has not been created yet: */
+	if(calibrationControlDialog==0)
+		return;
+	
+	int numDisks=-1;
+	if(disks!=0)
+		numDisks=int(disks->size());
+	else if(diskList.lockNewValue())
+		numDisks=int(diskList.getLockedValue().size());
+	
+	calibrationControlDialog->updateStatus(capturingBackground,capturingTiePoint,tiePointCaptureFailed,numDisks,unsigned(tiePoints.size()),numTiePoints[0]*numTiePoints[1]);
 	}
 
 CalibrateProjector::CalibrateProjector(int& argc,char**& argv)
@@ -145,6 +176,8 @@ CalibrateProjector::CalibrateProjector(int& argc,char**& argv)
 	 numTiePointFrames(60),numBackgroundFrames(120),
 	 camera(0),diskExtractor(0),projector(0),
 	 capturingBackground(false),capturingTiePoint(false),numCaptureFrames(0),
+	 tiePointCaptureFailed(false),
+	 calibrationControlDialog(0),
 	 tiePointIndex(0),
 	 haveProjection(false),projection(4,4)
 	{
@@ -387,6 +420,10 @@ CalibrateProjector::CalibrateProjector(int& argc,char**& argv)
 	
 	/* Start capturing the initial background frame: */
 	startBackgroundCapture();
+	
+	/* Create and show the dedicated calibration companion control dialog: */
+	calibrationControlDialog=new ProjectorCalibrationWindow();
+	updateStatusUi(0);
 	}
 
 CalibrateProjector::~CalibrateProjector(void)
@@ -396,6 +433,7 @@ CalibrateProjector::~CalibrateProjector(void)
 	diskExtractor->stopStreaming();
 	
 	/* Clean up: */
+	delete calibrationControlDialog;
 	delete diskExtractor;
 	delete projector;
 	delete camera;
@@ -403,6 +441,16 @@ CalibrateProjector::~CalibrateProjector(void)
 
 void CalibrateProjector::frame(void)
 	{
+	if(calibrationControlDialog!=0)
+		{
+		if(calibrationControlDialog->processEvents())
+			Vrui::shutdown();
+		if(calibrationControlDialog->consumeCapturePointRequest())
+			startTiePointCapture();
+		if(calibrationControlDialog->consumeRecaptureBackgroundRequest())
+			startBackgroundCapture();
+		}
+	
 	/* Check if we are capturing a tie point and there is a new list of extracted disks: */
 	if(diskList.lockNewValue()&&capturingTiePoint&&diskList.getLockedValue().size()==1)
 		{
@@ -443,6 +491,7 @@ void CalibrateProjector::frame(void)
 				/* Stop capturing this tie point and move to the next: */
 				std::cout<<"done"<<std::endl;
 				capturingTiePoint=false;
+				tiePointCaptureFailed=false;
 				++tiePointIndex;
 				
 				/* Check if the calibration is complete: */
@@ -451,6 +500,7 @@ void CalibrateProjector::frame(void)
 					/* Calculate the calibration transformation: */
 					calcCalibration();
 					}
+				updateStatusUi(&diskList.getLockedValue());
 				}
 			}
 		}
@@ -622,6 +672,7 @@ void CalibrateProjector::startBackgroundCapture(void)
 		capturingBackground=true;
 		std::cout<<"CalibrateProjector: Capturing "<<numBackgroundFrames<<" background frames..."<<std::flush;
 		directCamera->captureBackground(numBackgroundFrames,true,Misc::createFunctionCall(this,&CalibrateProjector::backgroundCaptureCompleteCallback));
+		updateStatusUi(0);
 		}
 	}
 
@@ -632,9 +683,18 @@ void CalibrateProjector::startTiePointCapture(void)
 		return;
 	
 	/* Start capturing a new tie point: */
+	if(!diskList.getLockedValue().empty()&&diskList.getLockedValue().size()!=1)
+		{
+		tiePointCaptureFailed=true;
+		updateStatusUi(&diskList.getLockedValue());
+		return;
+		}
+	
+	tiePointCaptureFailed=false;
 	capturingTiePoint=true;
 	numCaptureFrames=numTiePointFrames;
 	std::cout<<"CalibrateProjector: Capturing "<<numTiePointFrames<<" tie point frames..."<<std::flush;
+	updateStatusUi(&diskList.getLockedValue());
 	}
 
 void CalibrateProjector::calcCalibration(void)
