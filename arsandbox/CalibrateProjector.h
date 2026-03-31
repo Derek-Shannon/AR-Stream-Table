@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <vector>
 #include <Threads/TripleBuffer.h>
+#include <Misc/CallbackData.h>
 #include <Math/Matrix.h>
 #include <Geometry/Point.h>
 #include <Geometry/Vector.h>
@@ -45,9 +46,11 @@ class FrameBuffer;
 class FrameSource;
 class DirectFrameSource;
 }
+class ProjectorCalibrationWindow;
 
 class CalibrateProjector:public Vrui::Application
 	{
+	friend class ProjectorCalibrationWindow;
 	/* Embedded classes: */
 	private:
 	typedef Kinect::DiskExtractor::Scalar Scalar; // Scalar type
@@ -104,6 +107,9 @@ class CalibrateProjector:public Vrui::Application
 	bool capturingBackground; // Flag if the 3D camera is currently capturing a background frame
 	bool capturingTiePoint; // Flag whether the main thread is currently capturing a tie point
 	unsigned int numCaptureFrames; // Number of background or tie point frames still to capture
+	bool tiePointCaptureFailed; // Flag whether the most recent tie point capture request failed
+	
+	ProjectorCalibrationWindow* calibrationControlDialog; // Dedicated calibration companion control window
 	
 	Threads::TripleBuffer<Kinect::DiskExtractor::DiskList> diskList; // Triple buffer of lists of extracted disks
 	std::vector<TiePoint> tiePoints; // List of collected calibration tie points
@@ -120,6 +126,9 @@ class CalibrateProjector:public Vrui::Application
 	#endif
 	void backgroundCaptureCompleteCallback(Kinect::DirectFrameSource& camera); // Callback when the 3D camera is done capturing a background image
 	void diskExtractionCallback(const Kinect::DiskExtractor::DiskList& disks); // Called when a new list of disks has been extracted
+	void capturePointButtonCallback(Misc::CallbackData* cbData); // Callback when user requests a manual tie point capture from the companion UI
+	void recaptureBackgroundButtonCallback(Misc::CallbackData* cbData); // Callback when user requests background re-capture from the companion UI
+	void updateStatusUi(const Kinect::DiskExtractor::DiskList* disks); // Updates all dynamic status labels in the companion UI
 	
 	/* Constructors and destructors: */
 	public:

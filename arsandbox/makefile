@@ -162,11 +162,12 @@ include $(VRUI_MAKEDIR)/BasicMakefile
 # Calibration utility for Kinect 3D camera and projector:
 #
 
-CALIBRATEPROJECTOR_SOURCES = CalibrateProjector.cpp
+CALIBRATEPROJECTOR_SOURCES = CalibrateProjector.cpp \
+                             UserInterface/ProjectorCalibrationWindow.cpp
 
 $(CALIBRATEPROJECTOR_SOURCES:%.cpp=$(OBJDIR)/%.o): | $(DEPDIR)/config
 
-$(EXEDIR)/CalibrateProjector: PACKAGES += MYKINECT MYIO
+$(EXEDIR)/CalibrateProjector: PACKAGES += MYKINECT MYIO X11
 $(EXEDIR)/CalibrateProjector: $(CALIBRATEPROJECTOR_SOURCES:%.cpp=$(OBJDIR)/%.o)
 .PHONY: CalibrateProjector
 CalibrateProjector: $(EXEDIR)/CalibrateProjector
