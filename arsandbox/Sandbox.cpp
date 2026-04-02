@@ -2285,45 +2285,74 @@ void Sandbox::display(GLContextData& contextData) const
 		
 		glPopAttrib();
 		}
-		// --- START DEBUG BOX ---
-		glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT);
-		glDisable(GL_LIGHTING); // Ensure color shows up without needing lights
-		glDisable(GL_TEXTURE_2D);
+		// --- START MASKING CODE ---
+        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_POLYGON_BIT);
+        glDisable(GL_LIGHTING);  // Lighting is unneeded for flat black
+        glDisable(GL_TEXTURE_2D);
+        glDisable(GL_CULL_FACE); // Disable culling to ensure quads render regardless of winding
 
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
-		if(rs.fixProjectorView && rs.projectorTransformValid)
-		{
-			// If -fpv is active, use the Projector Matrix instead of the User Camera
-			glLoadMatrix(rs.projectorTransform);
-			// Crucial: Multiply by inverse navigation so world-space coords work
-			glMultMatrix(Geometry::invert(ds.modelviewNavigational));
-		}
-		
-		// Set color to bright yellow
-		glColor3f(1.0f, 1.0f, 0.0f);
-		glLineWidth(3.0f);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        if(rs.fixProjectorView && rs.projectorTransformValid)
+        {
+            // Use the Projector Matrix instead of the User Camera
+            glLoadMatrix(rs.projectorTransform);
+            // Multiply by inverse navigation so world-space coords work
+            glMultMatrix(Geometry::invert(ds.modelviewNavigational));
+        }
+        
+        // Set color to solid black to mask the projector light
+        glColor3f(255.0f, 0.0f, 0.0f);
 
-		// Draw a solid yellow quad
-		glBegin(GL_QUADS); 
-			glVertex(basePlaneCorners[0]); 
-			glVertex(basePlaneCorners[1]); 
-			glVertex(basePlaneCorners[3]); 
-			glVertex(basePlaneCorners[2]); 
-		glEnd();
+        // 1. Calculate the center of the calibration area
+        Point center = Geometry::mid(
+            Geometry::mid(basePlaneCorners[2], basePlaneCorners[3]),
+            Geometry::mid(basePlaneCorners[0], basePlaneCorners[1])
+        );
 
-		// Draw a black outline so we can see the edges clearly
-		glColor3f(0.0f, 0.0f, 0.0f);
-		glBegin(GL_LINE_LOOP);
-			glVertex(basePlaneCorners[0]); 
-			glVertex(basePlaneCorners[1]); 
-			glVertex(basePlaneCorners[3]); 
-			glVertex(basePlaneCorners[2]); 
-		glEnd();
-		glPopMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glPopAttrib();
-		// --- END DEBUG BOX ---
+        // 2. Scale factor to push vertices far off-screen
+        double scale = 50.0; 
+
+        // 3. Create giant outer corners by extending vectors from the center
+        Point outer0 = center + (basePlaneCorners[2] - center) * scale;
+        Point outer1 = center + (basePlaneCorners[3] - center) * scale;
+        Point outer2 = center + (basePlaneCorners[0] - center) * scale;
+        Point outer3 = center + (basePlaneCorners[1] - center) * scale;
+
+        // 4. Draw the 4 masking quads
+        // Note: The winding order assumes 0=BottomLeft, 1=BottomRight, 3=TopRight, 2=TopLeft
+        glBegin(GL_QUADS); 
+            
+            // Bottom Mask (Connecting outer bottom edge to inner bottom edge)
+            glVertex(outer0);
+            glVertex(outer1);
+            glVertex(basePlaneCorners[3]);
+            glVertex(basePlaneCorners[2]);
+
+            // Right Mask (Connecting outer right edge to inner right edge)
+            glVertex(outer1);
+            glVertex(outer3);
+            glVertex(basePlaneCorners[1]);
+            glVertex(basePlaneCorners[3]);
+
+            // Top Mask (Connecting outer top edge to inner top edge)
+            glVertex(outer3);
+            glVertex(outer2);
+            glVertex(basePlaneCorners[0]);
+            glVertex(basePlaneCorners[1]);
+
+            // Left Mask (Connecting outer left edge to inner left edge)
+            glVertex(outer2);
+            glVertex(outer0);
+            glVertex(basePlaneCorners[2]);
+            glVertex(basePlaneCorners[0]);
+
+        glEnd();
+        
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopAttrib();
+        // --- END MASKING CODE ---
 	}
 
 void Sandbox::resetNavigation(void)
