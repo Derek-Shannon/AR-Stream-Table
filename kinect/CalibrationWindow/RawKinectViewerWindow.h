@@ -30,8 +30,8 @@ class RawKinectViewerWindow
 	Cursor handCursor;
 	bool closeRequested;
 	
-	//Rect captureButtonRect;
-	//Rect recaptureBackgroundButtonRect;
+	Rect captureButtonRect;
+	Rect recaptureBackgroundButtonRect;
 	Rect captureInfoIconRect;
 	Rect recaptureInfoIconRect;
 	int hoverX;
@@ -64,8 +64,8 @@ class RawKinectViewerWindow
 	XFontStruct* headingFont;
 	XFontStruct* bodyFont;
 	XFontStruct* statusFont;
-	//bool captureButtonFlash;
-	//bool recaptureButtonFlash;
+	bool captureButtonFlash;
+	bool recaptureButtonFlash;
 	
 	unsigned long allocColor(const char* name,unsigned long fallback) const;
 	void setColor(unsigned long color);
@@ -81,16 +81,16 @@ class RawKinectViewerWindow
 	~RawKinectViewerWindow(void);
 	
 	bool processEvents(void);
-	//bool consumeCapturePointRequest(void);
-	//bool consumeRecaptureBackgroundRequest(void);
+	// bool consumeCapturePointRequest(void);
+	// bool consumeRecaptureBackgroundRequest(void);
 	
-	//void updateStatus(
-		//bool capturingBackground,
-		//bool capturingTiePoint,
-		//bool tiePointCaptureFailed,
-		//int detectedTargetCount,
-		//unsigned int collectedTiePointCount,
-		//int firstPassPointGoal);
+	// void updateStatus(
+	// 	bool capturingBackground,
+	// 	bool capturingTiePoint,
+	// 	bool tiePointCaptureFailed,
+	// 	int detectedTargetCount,
+	// 	unsigned int collectedTiePointCount,
+	// 	int firstPassPointGoal);
 	};
 
 #endif

@@ -58,6 +58,7 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include "PlaneTool.h"
 #include "PointPlaneTool.h"
 #include "CalibrationCheckTool.h"
+#include "CalibrationWindow/RawKinectViewerWindow.h"
 
 /******************************************
 Methods of class RawKinectViewer::DataItem:
@@ -813,7 +814,8 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	 averageFrameDepth(0),averageFrameForeground(0),
 	 averageFrameValid(false),showAverageFrame(false),
 	 depthPlaneValid(false),
-	 depthRangeDialog(0),mainMenu(0),averageDepthFrameDialog(0)
+	 depthRangeDialog(0),mainMenu(0),averageDepthFrameDialog(0),
+	 kinectViewerControlDialogue(0)
 	{
 	/*********************************************************************
 	Register the custom tool classes with the Vrui tool manager:
@@ -982,6 +984,9 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	
 	/* Start streaming: */
 	camera->startStreaming(Misc::createFunctionCall(this,&RawKinectViewer::colorStreamingCallback),Misc::createFunctionCall(this,&RawKinectViewer::depthStreamingCallback));
+
+	// Start the Raw Kinect Viewer companion UI
+	kinectViewerControlDialogue = new RawKinectViewerWindow();
 	
 	/* Select an invalid pixel: */
 	selectedPixel[0]=selectedPixel[1]=~0x0U;

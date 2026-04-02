@@ -23,8 +23,8 @@ RawKinectViewerWindow::RawKinectViewerWindow(void)
 	 //readinessMessage("Capture Readiness: Not ready yet."),
 	 //tiePointCountMessage("Points Collected: 0"),
 	 //stageMessage("Calibration Stage: First pass in progress."),
-	 titleFont(0),headingFont(0),bodyFont(0),statusFont(0)
-	 //captureButtonFlash(false),recaptureButtonFlash(false)
+	 titleFont(0),headingFont(0),bodyFont(0),statusFont(0),
+	 captureButtonFlash(false),recaptureButtonFlash(false)
 	{
 	(void)xThreadsInitialized;
 	display=XOpenDisplay(0);
@@ -97,7 +97,7 @@ RawKinectViewerWindow::RawKinectViewerWindow(void)
 	draw();
 	}
 
-ProjectorCalibrationWindow::~ProjectorCalibrationWindow(void)
+RawKinectViewerWindow::~RawKinectViewerWindow(void)
 	{
 	if(display!=0)
 		{
@@ -121,7 +121,7 @@ ProjectorCalibrationWindow::~ProjectorCalibrationWindow(void)
 		}
 	}
 
-unsigned long ProjectorCalibrationWindow::allocColor(const char* name,unsigned long fallback) const
+unsigned long RawKinectViewerWindow::allocColor(const char* name,unsigned long fallback) const
 	{
 	XColor color;
 	XColor exact;
@@ -131,12 +131,12 @@ unsigned long ProjectorCalibrationWindow::allocColor(const char* name,unsigned l
 	return fallback;
 	}
 
-void ProjectorCalibrationWindow::setColor(unsigned long color)
+void RawKinectViewerWindow::setColor(unsigned long color)
 	{
 	XSetForeground(display,graphicsContext,color);
 	}
 
-void ProjectorCalibrationWindow::drawButton(const Rect& rect,const char* label,bool hovered,bool active)
+void RawKinectViewerWindow::drawButton(const Rect& rect,const char* label,bool hovered,bool active)
 	{
 	setColor(active?colorButtonActive:(hovered?colorButtonHover:colorButton));
 	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
@@ -153,12 +153,12 @@ void ProjectorCalibrationWindow::drawButton(const Rect& rect,const char* label,b
 	XDrawString(display,window,graphicsContext,rect.x+30,rect.y+65,label,int(strlen(label)));
 	}
 
-void ProjectorCalibrationWindow::drawTextLine(int x,int y,const std::string& text)
+void RawKinectViewerWindow::drawTextLine(int x,int y,const std::string& text)
 	{
 	XDrawString(display,window,graphicsContext,x,y,text.c_str(),int(text.size()));
 	}
 
-void ProjectorCalibrationWindow::drawInfoIcon(const Rect& rect,bool hovered)
+void RawKinectViewerWindow::drawInfoIcon(const Rect& rect,bool hovered)
 	{
 	setColor(hovered?colorAccent:colorSubtleText);
 	XDrawArc(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h,0,360*64);
@@ -168,7 +168,7 @@ void ProjectorCalibrationWindow::drawInfoIcon(const Rect& rect,bool hovered)
 	XDrawString(display,window,graphicsContext,rect.x+8,rect.y+18,"i",1);
 	}
 
-void ProjectorCalibrationWindow::drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3)
+void RawKinectViewerWindow::drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3)
 	{
 	const int tooltipWidth=760;
 	const int tooltipHeight=92;
@@ -186,13 +186,13 @@ void ProjectorCalibrationWindow::drawTooltip(const Rect& anchor,const char* line
 	XDrawString(display,window,graphicsContext,tooltipX+12,tooltipY+80,line3,int(strlen(line3)));
 	}
 
-void ProjectorCalibrationWindow::updateCursor(void)
+void RawKinectViewerWindow::updateCursor(void)
 	{
 	const bool overButton=captureButtonRect.contains(hoverX,hoverY)||recaptureBackgroundButtonRect.contains(hoverX,hoverY)||captureInfoIconRect.contains(hoverX,hoverY)||recaptureInfoIconRect.contains(hoverX,hoverY);
 	XDefineCursor(display,window,overButton?handCursor:arrowCursor);
 	}
 
-void ProjectorCalibrationWindow::draw(void)
+void RawKinectViewerWindow::draw(void)
 	{
 	setColor(colorBackground);
 	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
@@ -262,19 +262,19 @@ void ProjectorCalibrationWindow::draw(void)
 	else
 		setColor(colorAccent);
 	drawTextLine(70,720,headline);
-	if(bodyFont!=0)
-		XSetFont(display,graphicsContext,bodyFont->fid);
-	setColor(colorSubtleText);
-	drawTextLine(70,760,detail);
-	drawTextLine(70,805,detectionMessage);
-	drawTextLine(70,845,readinessMessage);
-	drawTextLine(70,885,tiePointCountMessage);
-	drawTextLine(70,925,stageMessage);
+	//if(bodyFont!=0)
+		//XSetFont(display,graphicsContext,bodyFont->fid);
+	//setColor(colorSubtleText);
+	//drawTextLine(70,760,detail);
+	//drawTextLine(70,805,detectionMessage);
+	//drawTextLine(70,845,readinessMessage);
+	//drawTextLine(70,885,tiePointCountMessage);
+	//drawTextLine(70,925,stageMessage);
 	
 	XFlush(display);
 	}
 
-bool ProjectorCalibrationWindow::processEvents(void)
+bool RawKinectViewerWindow::processEvents(void)
 	{
 	while(XPending(display)>0)
 		{
@@ -293,19 +293,19 @@ bool ProjectorCalibrationWindow::processEvents(void)
 				draw();
 				break;
 			
-			case ButtonPress:
-				if(captureButtonRect.contains(event.xbutton.x,event.xbutton.y))
-					{
-					capturePointRequested=true;
-					captureButtonFlash=true;
-					}
-				else if(recaptureBackgroundButtonRect.contains(event.xbutton.x,event.xbutton.y))
-					{
-					recaptureBackgroundRequested=true;
-					recaptureButtonFlash=true;
-					}
-				draw();
-				break;
+			// case ButtonPress:
+			// 	if(captureButtonRect.contains(event.xbutton.x,event.xbutton.y))
+			// 		{
+			// 		capturePointRequested=true;
+			// 		captureButtonFlash=true;
+			// 		}
+			// 	else if(recaptureBackgroundButtonRect.contains(event.xbutton.x,event.xbutton.y))
+			// 		{
+			// 		recaptureBackgroundRequested=true;
+			// 		recaptureButtonFlash=true;
+			// 		}
+			// 	draw();
+			// 	break;
 			
 			case ClientMessage:
 				if(Atom(event.xclient.data.l[0])==wmDeleteWindow)
@@ -319,73 +319,73 @@ bool ProjectorCalibrationWindow::processEvents(void)
 	return closeRequested;
 	}
 
-bool ProjectorCalibrationWindow::consumeCapturePointRequest(void)
-	{
-	bool result=capturePointRequested;
-	capturePointRequested=false;
-	return result;
-	}
+// bool RawKinectViewerWindow::consumeCapturePointRequest(void)
+// 	{
+// 	bool result=capturePointRequested;
+// 	capturePointRequested=false;
+// 	return result;
+// 	}
 
-bool ProjectorCalibrationWindow::consumeRecaptureBackgroundRequest(void)
-	{
-	bool result=recaptureBackgroundRequested;
-	recaptureBackgroundRequested=false;
-	return result;
-	}
+// bool RawKinectViewerWindow::consumeRecaptureBackgroundRequest(void)
+// 	{
+// 	bool result=recaptureBackgroundRequested;
+// 	recaptureBackgroundRequested=false;
+// 	return result;
+// 	}
 
-void ProjectorCalibrationWindow::updateStatus(bool capturingBackground,bool capturingTiePoint,bool tiePointCaptureFailed,int detectedTargetCount,unsigned int collectedTiePointCount,int firstPassPointGoal)
-	{
-	headline="Status: Waiting for target detection.";
-	detail="Place the CD calibration target at the projected white-line intersection. Keep it flat, centered, and remove your hands before capture.";
-	detectionMessage="Target Detection: Waiting for a single CD target.";
-	readinessMessage="Capture Readiness: Not ready yet.";
+// void RawKinectViewerWindow::updateStatus(bool capturingBackground,bool capturingTiePoint,bool tiePointCaptureFailed,int detectedTargetCount,unsigned int collectedTiePointCount,int firstPassPointGoal)
+// 	{
+// 	headline="Status: Waiting for target detection.";
+// 	detail="Place the CD calibration target at the projected white-line intersection. Keep it flat, centered, and remove your hands before capture.";
+// 	detectionMessage="Target Detection: Waiting for a single CD target.";
+// 	readinessMessage="Capture Readiness: Not ready yet.";
 	
-	if(capturingBackground)
-		{
-		headline="Status: Capturing background model...";
-		detail="Background update in progress. Keep sandbox clear until complete.";
-		detectionMessage="Target Detection: Paused during background capture.";
-		readinessMessage="Capture Readiness: Waiting for background update.";
-		}
-	else if(capturingTiePoint)
-		{
-		headline="Status: Capturing calibration point...";
-		detail="Hold target steady; remove hands until capture completes.";
-		detectionMessage="Target Detection: Locked for active capture.";
-		readinessMessage="Capture Readiness: Capture in progress.";
-		}
-	else if(tiePointCaptureFailed)
-		{
-		headline="Status: Capture failed.";
-		detail="Need exactly one stable CD target. Reposition target and try again.";
-		detectionMessage="Target Detection: Unstable or multiple targets.";
-		readinessMessage="Capture Readiness: Not ready.";
-		}
-	else if(detectedTargetCount==1)
-		{
-		headline="Status: Target detected. Ready to capture.";
-		detail="Remove hands and press Capture Point now.";
-		detectionMessage="Target Detection: Single target detected.";
-		readinessMessage="Capture Readiness: Ready.";
-		}
-	else if(detectedTargetCount>1)
-		{
-		headline="Status: Multiple targets detected.";
-		detail="Leave only one CD target visible for reliable capture.";
-		detectionMessage="Target Detection: Multiple targets detected.";
-		readinessMessage="Capture Readiness: Not ready.";
-		}
+// 	if(capturingBackground)
+// 		{
+// 		headline="Status: Capturing background model...";
+// 		detail="Background update in progress. Keep sandbox clear until complete.";
+// 		detectionMessage="Target Detection: Paused during background capture.";
+// 		readinessMessage="Capture Readiness: Waiting for background update.";
+// 		}
+// 	else if(capturingTiePoint)
+// 		{
+// 		headline="Status: Capturing calibration point...";
+// 		detail="Hold target steady; remove hands until capture completes.";
+// 		detectionMessage="Target Detection: Locked for active capture.";
+// 		readinessMessage="Capture Readiness: Capture in progress.";
+// 		}
+// 	else if(tiePointCaptureFailed)
+// 		{
+// 		headline="Status: Capture failed.";
+// 		detail="Need exactly one stable CD target. Reposition target and try again.";
+// 		detectionMessage="Target Detection: Unstable or multiple targets.";
+// 		readinessMessage="Capture Readiness: Not ready.";
+// 		}
+// 	else if(detectedTargetCount==1)
+// 		{
+// 		headline="Status: Target detected. Ready to capture.";
+// 		detail="Remove hands and press Capture Point now.";
+// 		detectionMessage="Target Detection: Single target detected.";
+// 		readinessMessage="Capture Readiness: Ready.";
+// 		}
+// 	else if(detectedTargetCount>1)
+// 		{
+// 		headline="Status: Multiple targets detected.";
+// 		detail="Leave only one CD target visible for reliable capture.";
+// 		detectionMessage="Target Detection: Multiple targets detected.";
+// 		readinessMessage="Capture Readiness: Not ready.";
+// 		}
 	
-	char message[256];
-	snprintf(message,sizeof(message),"Points Collected: %u (first-pass goal: %d). Additional tie points can be added after first pass.",collectedTiePointCount,firstPassPointGoal);
-	tiePointCountMessage=message;
-	if(int(collectedTiePointCount)<firstPassPointGoal)
-		{
-		snprintf(message,sizeof(message),"Calibration Stage: First pass in progress (%d more suggested).",firstPassPointGoal-int(collectedTiePointCount));
-		stageMessage=message;
-		}
-	else
-		stageMessage="Calibration Stage: First pass complete. Add varied-height points to improve alignment.";
+// 	char message[256];
+// 	snprintf(message,sizeof(message),"Points Collected: %u (first-pass goal: %d). Additional tie points can be added after first pass.",collectedTiePointCount,firstPassPointGoal);
+// 	tiePointCountMessage=message;
+// 	if(int(collectedTiePointCount)<firstPassPointGoal)
+// 		{
+// 		snprintf(message,sizeof(message),"Calibration Stage: First pass in progress (%d more suggested).",firstPassPointGoal-int(collectedTiePointCount));
+// 		stageMessage=message;
+// 		}
+// 	else
+// 		stageMessage="Calibration Stage: First pass complete. Add varied-height points to improve alignment.";
 	
-	draw();
-	}
+// 	draw();
+// 	}
