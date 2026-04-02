@@ -2286,7 +2286,7 @@ void Sandbox::display(GLContextData& contextData) const
 		glPopAttrib();
 		}
 
-		bool enableProjectorMask = true;
+		bool enableProjectorMask = controlWindow->getMaskState();
 		if(enableProjectorMask)
 		{
 			// --- START MASKING CODE (DEPTH TRICK METHOD) ---
