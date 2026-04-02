@@ -146,6 +146,7 @@ class ControlWindow
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
 	bool getMaskState(void) const;
+	double getMaskScaleOffset(void) const;
 	double getContourLineInterval(void) const;
 	float getAppliedTiltValue(void) const;
 	double getWaterFlowRate(void) const;

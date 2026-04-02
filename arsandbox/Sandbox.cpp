@@ -2289,14 +2289,14 @@ void Sandbox::display(GLContextData& contextData) const
 		bool enableProjectorMask = controlWindow->getMaskState();
 		if(enableProjectorMask)
 		{
-			// --- START MASKING CODE (DEPTH TRICK METHOD) ---
+			// --- START MASKING CODE ---
 			glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_VIEWPORT_BIT);
 			
-			// 1. Clear the Depth Buffer so all empty space is marked as "Far" (Depth = 1.0)
+			// Clear the Depth Buffer so all empty space is marked as "Far" (Depth = 1.0)
 			glClearDepth(1.0);
 			glClear(GL_DEPTH_BUFFER_BIT);
 
-			// 2. Set up the 3D Projection Matrix to match your sandbox environment
+			// Set up the 3D Projection Matrix to match your sandbox environment
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			if(rs.fixProjectorView && rs.projectorTransformValid)
@@ -2305,21 +2305,34 @@ void Sandbox::display(GLContextData& contextData) const
 				glMultMatrix(Geometry::invert(ds.modelviewNavigational));
 			}
 
-			// 3. Render the calibration box to the DEPTH buffer ONLY
+			// Render the calibration box to the DEPTH buffer ONLY
 			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // Disable color writing
 			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_TRUE);
 			glDepthFunc(GL_ALWAYS);   // Ensure it draws regardless of what was there
 			glDisable(GL_CULL_FACE);  // Ensure it draws regardless of camera angle
 			
-			// THE TRICK: Force all depth writes from this box to be exactly 0.0 ("Near")
-			glDepthRange(0.0, 0.0); 
+			// Force all depth writes from this box to be exactly 0.0 ("Near")
+			glDepthRange(0.0, 0.0);
+
+			double maskScaleOffset = controlWindow->getMaskScaleOffset();;
+			// Find the center of the calibration area
+			Point center = Geometry::mid(
+				Geometry::mid(basePlaneCorners[2], basePlaneCorners[3]),
+				Geometry::mid(basePlaneCorners[0], basePlaneCorners[1])
+			);
+
+			// Calculate the scaled corners by pushing them away from the center
+			Point scaled0 = center + (basePlaneCorners[2] - center) * maskScaleOffset; 
+			Point scaled1 = center + (basePlaneCorners[3] - center) * maskScaleOffset;
+			Point scaled2 = center + (basePlaneCorners[0] - center) * maskScaleOffset;
+			Point scaled3 = center + (basePlaneCorners[1] - center) * maskScaleOffset;
 
 			glBegin(GL_QUADS); 
-				glVertex(basePlaneCorners[2]); // Bottom-Left
-				glVertex(basePlaneCorners[3]); // Bottom-Right
-				glVertex(basePlaneCorners[1]); // Top-Right
-				glVertex(basePlaneCorners[0]); // Top-Left
+				glVertex(scaled0); // Bottom-Left
+				glVertex(scaled1); // Bottom-Right
+				glVertex(scaled3); // Top-Right
+				glVertex(scaled2); // Top-Left
 			glEnd();
 
 			// Restore normal OpenGL depth range so we don't break subsequent calculations
@@ -2328,13 +2341,10 @@ void Sandbox::display(GLContextData& contextData) const
 			// 4. Restore color writing so we can draw our black mask
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			
-			// 5. Configure Depth Test so we ONLY draw where the depth is STILL 1.0 (Far)
-			// Our 2D mask will be drawn at Z = 0.5. 
-			// Inside the hole (Depth=0.0): 0.5 is NOT less than 0.0 -> Fails, leaves hole empty
-			// Outside the hole (Depth=1.0): 0.5 IS less than 1.0 -> Passes, draws black mask
+			// Configure Depth Test so we ONLY draw where the depth is STILL 1.0 (Far)
 			glDepthFunc(GL_LESS);
 
-			// 6. Draw the black background attached to the 2D window edges
+			// Draw the black background attached to the 2D window edges
 			glPushMatrix();   // Save our 3D projection matrix
 			glLoadIdentity(); // Reset Projection to flat 2D Space
 			
@@ -2355,7 +2365,7 @@ void Sandbox::display(GLContextData& contextData) const
 				glVertex3f(-1.0f,  1.0f, 0.5f); // Window Top-Left
 			glEnd();
 			
-			// 7. Clean up matrix stacks to leave the OpenGL state pristine
+			// Clean up matrix stacks to leave the OpenGL state pristine
 			glPopMatrix(); // Pop 2D ModelView
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix(); // Pop 2D Projection

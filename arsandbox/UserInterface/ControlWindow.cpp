@@ -752,6 +752,10 @@ bool ControlWindow::getMaskState(void) const
 	{
 	return maskEnabled;
 	}
+double ControlWindow::getMaskScaleOffset(void) const
+	{
+	return 1.5; //default is 1 but should be range (0.9 - 1.5)
+	}
 
 double ControlWindow::getWaterFlowRate(void) const
 	{
