@@ -1106,7 +1106,6 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	
 	/* Read the sandbox layout file: */
 	Geometry::Plane<double,3> basePlane;
-	Geometry::Point<double,3> basePlaneCorners[4];
 	{
 	IO::ValueSource layoutSource(IO::openFile(sandboxLayoutFileName.c_str()));
 	layoutSource.skipWs();
@@ -1205,7 +1204,6 @@ Sandbox::Sandbox(int& argc,char**& argv)
 		bbox.addPoint(basePlaneCorners[i]+basePlane.getNormal()*elevationRange.getMin());
 		bbox.addPoint(basePlaneCorners[i]+basePlane.getNormal()*elevationRange.getMax());
 		}
-	
 	if(waterSpeed>0.0)
 		{
 		/* Initialize the water flow simulator: */
@@ -2045,6 +2043,7 @@ void Sandbox::display(GLContextData& contextData) const
 		dataItem->waterTableTime=Vrui::getApplicationTime();
 		}
 	
+
 	/* Check if rendering is suspended due to a property grid creation request: */
 	if(propertyGridCreator==0||!propertyGridCreator->isRequestActive())
 		{
@@ -2286,6 +2285,45 @@ void Sandbox::display(GLContextData& contextData) const
 		
 		glPopAttrib();
 		}
+		// --- START DEBUG BOX ---
+		glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_LINE_BIT);
+		glDisable(GL_LIGHTING); // Ensure color shows up without needing lights
+		glDisable(GL_TEXTURE_2D);
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		if(rs.fixProjectorView && rs.projectorTransformValid)
+		{
+			// If -fpv is active, use the Projector Matrix instead of the User Camera
+			glLoadMatrix(rs.projectorTransform);
+			// Crucial: Multiply by inverse navigation so world-space coords work
+			glMultMatrix(Geometry::invert(ds.modelviewNavigational));
+		}
+		
+		// Set color to bright yellow
+		glColor3f(1.0f, 1.0f, 0.0f);
+		glLineWidth(3.0f);
+
+		// Draw a solid yellow quad
+		glBegin(GL_QUADS); 
+			glVertex(basePlaneCorners[0]); 
+			glVertex(basePlaneCorners[1]); 
+			glVertex(basePlaneCorners[3]); 
+			glVertex(basePlaneCorners[2]); 
+		glEnd();
+
+		// Draw a black outline so we can see the edges clearly
+		glColor3f(0.0f, 0.0f, 0.0f);
+		glBegin(GL_LINE_LOOP);
+			glVertex(basePlaneCorners[0]); 
+			glVertex(basePlaneCorners[1]); 
+			glVertex(basePlaneCorners[3]); 
+			glVertex(basePlaneCorners[2]); 
+		glEnd();
+		glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glPopAttrib();
+		// --- END DEBUG BOX ---
 	}
 
 void Sandbox::resetNavigation(void)
