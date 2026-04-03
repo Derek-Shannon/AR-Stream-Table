@@ -288,6 +288,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createWaterControlDialog(void);
 	ControlWindow* createControlWindow(void);
+	Geometry::Point<double,3> basePlaneCorners[4];
 	/* Constructors and destructors: */
 	public:
 	Sandbox(int& argc,char**& argv);

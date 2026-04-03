@@ -1106,7 +1106,6 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	
 	/* Read the sandbox layout file: */
 	Geometry::Plane<double,3> basePlane;
-	Geometry::Point<double,3> basePlaneCorners[4];
 	{
 	IO::ValueSource layoutSource(IO::openFile(sandboxLayoutFileName.c_str()));
 	layoutSource.skipWs();
@@ -1205,7 +1204,6 @@ Sandbox::Sandbox(int& argc,char**& argv)
 		bbox.addPoint(basePlaneCorners[i]+basePlane.getNormal()*elevationRange.getMin());
 		bbox.addPoint(basePlaneCorners[i]+basePlane.getNormal()*elevationRange.getMax());
 		}
-	
 	if(waterSpeed>0.0)
 		{
 		/* Initialize the water flow simulator: */
@@ -2045,6 +2043,7 @@ void Sandbox::display(GLContextData& contextData) const
 		dataItem->waterTableTime=Vrui::getApplicationTime();
 		}
 	
+
 	/* Check if rendering is suspended due to a property grid creation request: */
 	if(propertyGridCreator==0||!propertyGridCreator->isRequestActive())
 		{
@@ -2285,6 +2284,96 @@ void Sandbox::display(GLContextData& contextData) const
 		glPopMatrix();
 		
 		glPopAttrib();
+		}
+
+		bool enableProjectorMask = controlWindow->getMaskState();
+		if(enableProjectorMask)
+		{
+			// --- START MASKING CODE ---
+			glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_VIEWPORT_BIT);
+			
+			// Clear the Depth Buffer so all empty space is marked as "Far" (Depth = 1.0)
+			glClearDepth(1.0);
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			// Set up the 3D Projection Matrix to match your sandbox environment
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			if(rs.fixProjectorView && rs.projectorTransformValid)
+			{
+				glLoadMatrix(rs.projectorTransform);
+				glMultMatrix(Geometry::invert(ds.modelviewNavigational));
+			}
+
+			// Render the calibration box to the DEPTH buffer ONLY
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // Disable color writing
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+			glDepthFunc(GL_ALWAYS);   // Ensure it draws regardless of what was there
+			glDisable(GL_CULL_FACE);  // Ensure it draws regardless of camera angle
+			
+			// Force all depth writes from this box to be exactly 0.0 ("Near")
+			glDepthRange(0.0, 0.0);
+
+			double maskScaleOffset = controlWindow->getMaskScaleOffset();;
+			// Find the center of the calibration area
+			Point center = Geometry::mid(
+				Geometry::mid(basePlaneCorners[2], basePlaneCorners[3]),
+				Geometry::mid(basePlaneCorners[0], basePlaneCorners[1])
+			);
+
+			// Calculate the scaled corners by pushing them away from the center
+			Point scaled0 = center + (basePlaneCorners[2] - center) * maskScaleOffset; 
+			Point scaled1 = center + (basePlaneCorners[3] - center) * maskScaleOffset;
+			Point scaled2 = center + (basePlaneCorners[0] - center) * maskScaleOffset;
+			Point scaled3 = center + (basePlaneCorners[1] - center) * maskScaleOffset;
+
+			glBegin(GL_QUADS); 
+				glVertex(scaled0); // Bottom-Left
+				glVertex(scaled1); // Bottom-Right
+				glVertex(scaled3); // Top-Right
+				glVertex(scaled2); // Top-Left
+			glEnd();
+
+			// Restore normal OpenGL depth range so we don't break subsequent calculations
+			glDepthRange(0.0, 1.0); 
+
+			// 4. Restore color writing so we can draw our black mask
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			
+			// Configure Depth Test so we ONLY draw where the depth is STILL 1.0 (Far)
+			glDepthFunc(GL_LESS);
+
+			// Draw the black background attached to the 2D window edges
+			glPushMatrix();   // Save our 3D projection matrix
+			glLoadIdentity(); // Reset Projection to flat 2D Space
+			
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity(); // Reset ModelView to flat 2D Space
+			
+			glDisable(GL_LIGHTING);
+			glDisable(GL_TEXTURE_2D);
+			
+			glColor3f(0.0f, 0.0f, 0.0f); // Solid black
+			
+			// Draw the fullscreen 2D quad at Z = 0.5
+			glBegin(GL_QUADS);
+				glVertex3f(-1.0f, -1.0f, 0.5f); // Window Bottom-Left
+				glVertex3f( 1.0f, -1.0f, 0.5f); // Window Bottom-Right
+				glVertex3f( 1.0f,  1.0f, 0.5f); // Window Top-Right
+				glVertex3f(-1.0f,  1.0f, 0.5f); // Window Top-Left
+			glEnd();
+			
+			// Clean up matrix stacks to leave the OpenGL state pristine
+			glPopMatrix(); // Pop 2D ModelView
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix(); // Pop 2D Projection
+			glPopMatrix(); // Pop 3D Projection
+			glMatrixMode(GL_MODELVIEW);
+			
+			glPopAttrib(); // Restores all masks, colors, and depth toggles
+			// --- END MASKING CODE ---
 		}
 	}
 

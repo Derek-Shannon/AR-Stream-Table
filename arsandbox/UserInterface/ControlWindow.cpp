@@ -63,6 +63,7 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 	       scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
 	       scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y)||
 	       scaledRect(testingCheckboxRect).contains(x,y)||scaledRect(testingSliderRect).contains(x,y);
+		   scaledRect(maskCheckboxRect).contains(x,y);
 	}
 
 unsigned long ControlWindow::resolveButtonFill(bool active,bool hovered) const
@@ -263,6 +264,7 @@ void ControlWindow::draw(void)
 	const Rect contour4Rect=scaledRect(contourIntervalButton4Rect);
 	const Rect testingLabelRectScaled=scaledRect(testingLabelRect);
 	const Rect testingCheckboxRectScaled=scaledRect(testingCheckboxRect);
+	const Rect maskCheckboxRectScaled=scaledRect(maskCheckboxRect);
 	const Rect testingSliderRectScaled=scaledRect(testingSliderRect);
 	XFontStruct* title=activeTitleFont();
 	XFontStruct* section=activeSectionFont();
@@ -332,6 +334,27 @@ void ControlWindow::draw(void)
 	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y-8,sliderBuffer,int(strlen(sliderBuffer)));
 	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"0 deg",5);
 	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x+testingSliderRectScaled.w-36,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"22 deg",6);
+	// --- START MASK CHECKBOX DRAWING ---
+    setColor(colorBorder);
+    XDrawRectangle(display,window,graphicsContext,maskCheckboxRectScaled.x,maskCheckboxRectScaled.y,maskCheckboxRectScaled.w,maskCheckboxRectScaled.h);
+    
+    // Draw the checkmark if enabled
+    if(maskEnabled)
+        {
+        setColor(colorSuccess);
+        XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+3,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h/2,
+                  maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4);
+        XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,
+                  maskCheckboxRectScaled.x+maskCheckboxRectScaled.w-3,maskCheckboxRectScaled.y+3);
+        }
+        
+    // Draw the text label next to the box
+    setColor(colorText);
+    setFont(section);
+    const char* maskLabel = "Enable Projector Masking";
+    XDrawString(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w+12,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,maskLabel,int(strlen(maskLabel)));
+    // --- END MASK CHECKBOX DRAWING ---
+
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
 	XDrawLine(display,window,graphicsContext,width/2,62,width/2,height-16);
@@ -394,7 +417,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0),
+	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true),
 	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
@@ -598,6 +621,7 @@ bool ControlWindow::processEvents(void)
 			const Rect contour2Rect=scaledRect(contourIntervalButton2Rect);
 			const Rect contour4Rect=scaledRect(contourIntervalButton4Rect);
 			const Rect testingCheckbox=scaledRect(testingCheckboxRect);
+			const Rect maskCheckbox=scaledRect(maskCheckboxRect);
 			const Rect testingSlider=scaledRect(testingSliderRect);
 				const Rect cancelRect=scaledRect(exportDialogCancelRect);
 				const Rect okRect=scaledRect(exportDialogOkRect);
@@ -633,6 +657,10 @@ bool ControlWindow::processEvents(void)
 				{
 				testingEnabled=!testingEnabled;
 				}
+			else if(maskCheckbox.contains(x,y))
+                {
+                maskEnabled=!maskEnabled;
+                }
 			else if(testingEnabled&&testingSlider.contains(x,y))
 				{
 				const int dx=x-testingSlider.x;
@@ -698,6 +726,7 @@ const ControlWindow::Rect ControlWindow::contourIntervalButton2Rect={24,314,206,
 const ControlWindow::Rect ControlWindow::contourIntervalButton4Rect={238,314,206,56};
 const ControlWindow::Rect ControlWindow::testingLabelRect={24,392,420,36};
 const ControlWindow::Rect ControlWindow::testingCheckboxRect={24,438,16,16};
+const ControlWindow::Rect ControlWindow::maskCheckboxRect={540,480,16,16};
 const ControlWindow::Rect ControlWindow::testingSliderRect={24,480,320,36};
 const ControlWindow::Rect ControlWindow::exportDialogRect={300,150,420,220};
 const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
@@ -718,6 +747,14 @@ double ControlWindow::getContourLineInterval(void) const
 float ControlWindow::getAppliedTiltValue(void) const
 	{
 	return testingEnabled?testingTiltValue:sensorAngleValue;
+	}
+bool ControlWindow::getMaskState(void) const
+	{
+	return maskEnabled;
+	}
+double ControlWindow::getMaskScaleOffset(void) const
+	{
+	return 1.5; //default is 1 but should be range (0.9 - 1.5)
 	}
 
 double ControlWindow::getWaterFlowRate(void) const

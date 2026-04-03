@@ -37,6 +37,7 @@ class ControlWindow
 	static const Rect contourIntervalButton4Rect;
 	static const Rect testingLabelRect;
 	static const Rect testingCheckboxRect;
+	static const Rect maskCheckboxRect;
 	static const Rect testingSliderRect;
 	static const Rect exportDialogRect;
 	static const Rect exportDialogInputRect;
@@ -65,6 +66,7 @@ class ControlWindow
 	double waterFlowRate;
 	float appliedAngleValue;
 	float sensorAngleValue;
+	bool maskEnabled;
 	int testingTiltValue;
 	bool testingEnabled;
 	bool testingSliderDragging;
@@ -143,6 +145,8 @@ class ControlWindow
 
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
+	bool getMaskState(void) const;
+	double getMaskScaleOffset(void) const;
 	double getContourLineInterval(void) const;
 	float getAppliedTiltValue(void) const;
 	double getWaterFlowRate(void) const;
