@@ -24,6 +24,8 @@ class ProjectorCalibrationWindow
 	
 	Display* display;
 	Window window;
+	Pixmap backBuffer;
+	Drawable drawTarget;
 	GC graphicsContext;
 	Atom wmDeleteWindow;
 	Cursor arrowCursor;
@@ -32,20 +34,17 @@ class ProjectorCalibrationWindow
 	
 	Rect captureButtonRect;
 	Rect recaptureBackgroundButtonRect;
+	Rect exitButtonRect;
+	Rect runStreamTableButtonRect;
 	Rect captureInfoIconRect;
 	Rect recaptureInfoIconRect;
+	Rect calibrationTipsIconRect;
 	int hoverX;
 	int hoverY;
 	
 	bool capturePointRequested;
 	bool recaptureBackgroundRequested;
-	
-	std::string headline;
-	std::string detail;
-	std::string detectionMessage;
-	std::string readinessMessage;
-	std::string tiePointCountMessage;
-	std::string stageMessage;
+	unsigned int tiePointCount;
 	
 	unsigned long colorBackground;
 	unsigned long colorPanel;
@@ -63,7 +62,6 @@ class ProjectorCalibrationWindow
 	XFontStruct* titleFont;
 	XFontStruct* headingFont;
 	XFontStruct* bodyFont;
-	XFontStruct* statusFont;
 	bool captureButtonFlash;
 	bool recaptureButtonFlash;
 	
@@ -73,6 +71,7 @@ class ProjectorCalibrationWindow
 	void drawTextLine(int x,int y,const std::string& text);
 	void drawInfoIcon(const Rect& rect,bool hovered);
 	void drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3);
+	void drawTipsTooltip(const Rect& anchor);
 	void updateCursor(void);
 	void draw(void);
 	
@@ -83,14 +82,8 @@ class ProjectorCalibrationWindow
 	bool processEvents(void);
 	bool consumeCapturePointRequest(void);
 	bool consumeRecaptureBackgroundRequest(void);
+	void setTiePointCount(unsigned int newTiePointCount);
 	
-	void updateStatus(
-		bool capturingBackground,
-		bool capturingTiePoint,
-		bool tiePointCaptureFailed,
-		int detectedTargetCount,
-		unsigned int collectedTiePointCount,
-		int firstPassPointGoal);
 	};
 
 #endif

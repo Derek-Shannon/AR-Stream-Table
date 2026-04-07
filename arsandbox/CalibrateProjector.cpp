@@ -158,17 +158,9 @@ void CalibrateProjector::recaptureBackgroundButtonCallback(Misc::CallbackData* c
 
 void CalibrateProjector::updateStatusUi(const Kinect::DiskExtractor::DiskList* disks)
 	{
-	/* Bail out if the companion UI has not been created yet: */
-	if(calibrationControlDialog==0)
-		return;
-	
-	int numDisks=-1;
-	if(disks!=0)
-		numDisks=int(disks->size());
-	else if(diskList.lockNewValue())
-		numDisks=int(diskList.getLockedValue().size());
-	
-	calibrationControlDialog->updateStatus(capturingBackground,capturingTiePoint,tiePointCaptureFailed,numDisks,unsigned(tiePoints.size()),numTiePoints[0]*numTiePoints[1]);
+	(void)disks;
+	if(calibrationControlDialog!=0)
+		calibrationControlDialog->setTiePointCount(unsigned(tiePoints.size()));
 	}
 
 CalibrateProjector::CalibrateProjector(int& argc,char**& argv)
