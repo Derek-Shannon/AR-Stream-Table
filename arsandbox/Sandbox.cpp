@@ -767,7 +767,8 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 snowLineSlider(0),waterSpeedSlider(0),waterMaxStepsSlider(0),frameRateTextField(0),waterAttenuationSlider(0),
 	 controlWindow(0),uiContourLineSpacing(0.75f),
 	 exportScreenshotPending(false),exportScreenshotRequestTime(0.0),exportStatusTime(-1.0),exportScreenshotFileName(),
-	 controlPipeFd(-1)
+	 controlPipeFd(-1),
+	 customMaskScale(1.1)
 	{
 	/* Read the sandbox's default configuration parameters: */
 	std::string sandboxConfigFileName=CONFIG_CONFIGDIR;
@@ -803,6 +804,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	double evaporationRate=cfg.retrieveValue<double>("./evaporationRate",0.0);
 	float demDistScale=cfg.retrieveValue<float>("./demDistScale",1.0f);
 	std::string controlPipeName=cfg.retrieveString("./controlPipeName","");
+	customMaskScale = cfg.retrieveValue<double>("./Masking/maskScaleOffset", 1.1);
 	
 	/* Process command line parameters: */
 	bool printHelp=false;
@@ -2315,7 +2317,7 @@ void Sandbox::display(GLContextData& contextData) const
 			// Force all depth writes from this box to be exactly 0.0 ("Near")
 			glDepthRange(0.0, 0.0);
 
-			double maskScaleOffset = controlWindow->getMaskScaleOffset();;
+			double maskScaleOffset = customMaskScale;
 			// Find the center of the calibration area
 			Point center = Geometry::mid(
 				Geometry::mid(basePlaneCorners[2], basePlaneCorners[3]),
