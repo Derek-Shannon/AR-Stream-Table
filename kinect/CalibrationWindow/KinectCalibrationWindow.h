@@ -1,10 +1,10 @@
-#ifndef CALIBRATIONWINDOW_RAWKINECTVIEWERWINDOW_INCLUDED
-#define CALIBRATIONWINDOW_RAWKINECTVIEWERWINDOW_INCLUDED
+#ifndef CALIBRATIONWINDOW_KINECTCALIBRATIONWINDOW_INCLUDED
+#define CALIBRATIONWINDOW_KINECTCALIBRATIONWINDOW_INCLUDED
 
 #include <X11/Xlib.h>
 #include <string>
 
-class RawKinectViewerWindow
+class KinectCalibrationWindow
 	{
 	private:
 	struct Rect
@@ -30,23 +30,21 @@ class RawKinectViewerWindow
 	Cursor handCursor;
 	bool closeRequested;
 	
-	Rect captureButtonRect;
-	Rect recaptureBackgroundButtonRect;
-	Rect captureInfoIconRect;
-	Rect recaptureInfoIconRect;
+	/* Button rects */
+	Rect averageFramesButtonRect;
+	Rect extractPlanesButtonRect;
+	Rect measure3DButtonRect;
+	Rect finishCalibrationButtonRect;
+	
+	/* Info icon rects */
+	Rect averageFramesInfoIconRect;
+	Rect extractPlanesInfoIconRect;
+	Rect measure3DInfoIconRect;
+	
 	int hoverX;
 	int hoverY;
 	
-	//bool capturePointRequested;
-	//bool recaptureBackgroundRequested;
-	
-	std::string headline;
-	std::string detail;
-	//std::string detectionMessage;
-	//std::string readinessMessage;
-	//std::string tiePointCountMessage;
-	//std::string stageMessage;
-	
+	/* Colors */
 	unsigned long colorBackground;
 	unsigned long colorPanel;
 	unsigned long colorBorder;
@@ -54,7 +52,8 @@ class RawKinectViewerWindow
 	unsigned long colorSubtleText;
 	unsigned long colorButton;
 	unsigned long colorButtonHover;
-	unsigned long colorButtonActive;
+	unsigned long colorFinish;
+	unsigned long colorFinishHover;
 	unsigned long colorAccent;
 	unsigned long colorSuccess;
 	unsigned long colorWarning;
@@ -63,13 +62,10 @@ class RawKinectViewerWindow
 	XFontStruct* titleFont;
 	XFontStruct* headingFont;
 	XFontStruct* bodyFont;
-	XFontStruct* statusFont;
-	bool captureButtonFlash;
-	bool recaptureButtonFlash;
 	
 	unsigned long allocColor(const char* name,unsigned long fallback) const;
 	void setColor(unsigned long color);
-	void drawButton(const Rect& rect,const char* label,bool hovered,bool active);
+	void drawButton(const Rect& rect,const char* label,bool hovered,unsigned long baseColor);
 	void drawTextLine(int x,int y,const std::string& text);
 	void drawInfoIcon(const Rect& rect,bool hovered);
 	void drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3);
@@ -77,20 +73,10 @@ class RawKinectViewerWindow
 	void draw(void);
 	
 	public:
-	RawKinectViewerWindow(void);
-	~RawKinectViewerWindow(void);
+	KinectCalibrationWindow(void);
+	~KinectCalibrationWindow(void);
 	
 	bool processEvents(void);
-	// bool consumeCapturePointRequest(void);
-	// bool consumeRecaptureBackgroundRequest(void);
-	
-	// void updateStatus(
-	// 	bool capturingBackground,
-	// 	bool capturingTiePoint,
-	// 	bool tiePointCaptureFailed,
-	// 	int detectedTargetCount,
-	// 	unsigned int collectedTiePointCount,
-	// 	int firstPassPointGoal);
 	};
 
 #endif

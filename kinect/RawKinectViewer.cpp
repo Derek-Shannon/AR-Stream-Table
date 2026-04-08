@@ -58,7 +58,7 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include "PlaneTool.h"
 #include "PointPlaneTool.h"
 #include "CalibrationCheckTool.h"
-#include "CalibrationWindow/RawKinectViewerWindow.h"
+#include "CalibrationWindow/KinectCalibrationWindow.h"
 
 /******************************************
 Methods of class RawKinectViewer::DataItem:
@@ -815,7 +815,7 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	 averageFrameValid(false),showAverageFrame(false),
 	 depthPlaneValid(false),
 	 depthRangeDialog(0),mainMenu(0),averageDepthFrameDialog(0),
-	 kinectViewerControlDialogue(0)
+	 CalibrateKinectControl(0)
 	{
 	/*********************************************************************
 	Register the custom tool classes with the Vrui tool manager:
@@ -985,8 +985,8 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	/* Start streaming: */
 	camera->startStreaming(Misc::createFunctionCall(this,&RawKinectViewer::colorStreamingCallback),Misc::createFunctionCall(this,&RawKinectViewer::depthStreamingCallback));
 
-	// Start the Raw Kinect Viewer companion UI
-	kinectViewerControlDialogue = new RawKinectViewerWindow();
+	// Start the Kinect Calibration control window (RawKinectViewer companion UI)
+	CalibrateKinectControl = new KinectCalibrationWindow();
 	
 	/* Select an invalid pixel: */
 	selectedPixel[0]=selectedPixel[1]=~0x0U;
@@ -997,6 +997,7 @@ RawKinectViewer::~RawKinectViewer(void)
 	delete mainMenu;
 	delete depthRangeDialog;
 	delete averageDepthFrameDialog;
+	delete CalibrateKinectControl;
 	
 	/* Stop streaming: */
 	camera->stopStreaming();
@@ -1025,6 +1026,18 @@ void RawKinectViewer::toolCreationCallback(Vrui::ToolManager::ToolCreationCallba
 
 void RawKinectViewer::frame(void)
 	{
+	/* Process events for the companion UI window */
+    if(CalibrateKinectControl != 0)
+        {
+        if(CalibrateKinectControl->processEvents())
+            {
+            /* Control Window was closed */
+            delete CalibrateKinectControl;
+            CalibrateKinectControl = 0;
+			Vrui::shutdown();
+            }
+        }
+
 	/* Lock the most recent frame in the color frame triple buffer: */
 	if(colorFrames.lockNewValue())
 		++colorFrameVersion;
