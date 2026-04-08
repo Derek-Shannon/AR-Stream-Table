@@ -134,6 +134,19 @@ void CalibrateProjector::backgroundCaptureCompleteCallback(Kinect::DirectFrameSo
 
 void CalibrateProjector::diskExtractionCallback(const Kinect::DiskExtractor::DiskList& disks)
 	{
+	/* Cache the most recent valid single-disk center for fallback capture requests: */
+	if(disks.size()==1)
+		{
+		bool diskValid=true;
+		for(int i=0;i<3;++i)
+			diskValid=diskValid&&Math::isFinite(disks.front().center[i]);
+		if(diskValid)
+			{
+			lastDiskCenter=disks.front().center;
+			haveLastDiskCenter=true;
+			}
+		}
+	
 	/* Store the new disk list in the triple buffer: */
 	Kinect::DiskExtractor::DiskList& newList=diskList.startNewValue();
 	newList=disks;
@@ -168,7 +181,7 @@ CalibrateProjector::CalibrateProjector(int& argc,char**& argv)
 	 numTiePointFrames(60),numBackgroundFrames(120),
 	 camera(0),diskExtractor(0),projector(0),
 	 capturingBackground(false),capturingTiePoint(false),numCaptureFrames(0),
-	 tiePointCaptureFailed(false),
+	 tiePointCaptureFailed(false),haveLastDiskCenter(false),lastDiskCenter(OPoint::origin),
 	 calibrationControlDialog(0),
 	 tiePointIndex(0),
 	 haveProjection(false),projection(4,4)
@@ -433,6 +446,9 @@ CalibrateProjector::~CalibrateProjector(void)
 
 void CalibrateProjector::frame(void)
 	{
+	/* Keep the currently-locked extracted disk list up to date. */
+	diskList.lockNewValue();
+	
 	if(calibrationControlDialog!=0)
 		{
 		if(calibrationControlDialog->processEvents())
@@ -441,59 +457,14 @@ void CalibrateProjector::frame(void)
 			startTiePointCapture();
 		if(calibrationControlDialog->consumeRecaptureBackgroundRequest())
 			startBackgroundCapture();
-		}
-	
-	/* Check if we are capturing a tie point and there is a new list of extracted disks: */
-	if(diskList.lockNewValue()&&capturingTiePoint&&diskList.getLockedValue().size()==1)
-		{
-		/* Access the only extracted disk: */
-		const Kinect::DiskExtractor::Disk& disk=diskList.getLockedValue().front();
-		
-		/* Check if there is a real disk center position: */
-		bool diskValid=true;
-		for(int i=0;i<3;++i)
-			diskValid=diskValid&&Math::isFinite(disk.center[i]);
-		
-		#if 0
-		
-		/* Check if the disk is inside the sandbox area: */
-		diskValid=diskValid&&(basePlane.getNormal()^(basePlaneCorners[1]-basePlaneCorners[0]))*(disk.center-basePlaneCorners[0])>=0.0;
-		diskValid=diskValid&&(basePlane.getNormal()^(basePlaneCorners[3]-basePlaneCorners[1]))*(disk.center-basePlaneCorners[1])>=0.0;
-		diskValid=diskValid&&(basePlane.getNormal()^(basePlaneCorners[2]-basePlaneCorners[3]))*(disk.center-basePlaneCorners[3])>=0.0;
-		diskValid=diskValid&&(basePlane.getNormal()^(basePlaneCorners[0]-basePlaneCorners[2]))*(disk.center-basePlaneCorners[2])>=0.0;
-		
-		#endif
-		
-		if(diskValid)
+		if(calibrationControlDialog->consumeResetCalibrationRequest())
+			resetCalibration();
+		if(calibrationControlDialog->consumeFinishCalibrationRequest())
 			{
-			/* Store the just-captured tie point: */
-			TiePoint tp;
-			int xIndex=tiePointIndex%numTiePoints[0];
-			int yIndex=(tiePointIndex/numTiePoints[0])%numTiePoints[1];
-			int x=(xIndex+1)*imageSize[0]/(numTiePoints[0]+1);
-			int y=(yIndex+1)*imageSize[1]/(numTiePoints[1]+1);
-			tp.p=PPoint(Scalar(x)+Scalar(0.5),Scalar(y)+Scalar(0.5));
-			tp.o=disk.center;
-			tiePoints.push_back(tp);
-			
-			/* Check if that's enough: */
-			--numCaptureFrames;
-			if(numCaptureFrames==0)
-				{
-				/* Stop capturing this tie point and move to the next: */
-				std::cout<<"done"<<std::endl;
-				capturingTiePoint=false;
-				tiePointCaptureFailed=false;
-				++tiePointIndex;
-				
-				/* Check if the calibration is complete: */
-				if(tiePointIndex>=numTiePoints[0]*numTiePoints[1])
-					{
-					/* Calculate the calibration transformation: */
-					calcCalibration();
-					}
-				updateStatusUi(&diskList.getLockedValue());
-				}
+			if(tiePointIndex>=numTiePoints[0]*numTiePoints[1])
+				calcCalibration();
+			else
+				std::cout<<"CalibrateProjector: Need at least "<<numTiePoints[0]*numTiePoints[1]<<" tie points before finishing calibration"<<std::endl;
 			}
 		}
 	
@@ -674,19 +645,64 @@ void CalibrateProjector::startTiePointCapture(void)
 	if(capturingBackground||capturingTiePoint)
 		return;
 	
-	/* Start capturing a new tie point: */
-	if(!diskList.getLockedValue().empty()&&diskList.getLockedValue().size()!=1)
+	/* Use the newest available extracted disk list at capture time. */
+	diskList.lockNewValue();
+	
+	/* Prefer the currently detected single disk center; otherwise fall back to the last valid one. */
+	const Kinect::DiskExtractor::DiskList& disks=diskList.getLockedValue();
+	OPoint captureCenter=OPoint::origin;
+	bool usingLiveDisk=false;
+	if(disks.size()==1)
 		{
-		tiePointCaptureFailed=true;
-		updateStatusUi(&diskList.getLockedValue());
-		return;
+		bool diskValid=true;
+		for(int i=0;i<3;++i)
+			diskValid=diskValid&&Math::isFinite(disks.front().center[i]);
+		if(diskValid)
+			{
+			captureCenter=disks.front().center;
+			usingLiveDisk=true;
+			lastDiskCenter=captureCenter;
+			haveLastDiskCenter=true;
+			}
+		}
+	if(!usingLiveDisk)
+		{
+		if(haveLastDiskCenter)
+			captureCenter=lastDiskCenter;
+		else
+			captureCenter=Geometry::mid(Geometry::mid(basePlaneCorners[0],basePlaneCorners[1]),Geometry::mid(basePlaneCorners[2],basePlaneCorners[3]));
 		}
 	
+	/* Store one tie point at the current target crosshair location: */
+	TiePoint tp;
+	int xIndex=tiePointIndex%numTiePoints[0];
+	int yIndex=(tiePointIndex/numTiePoints[0])%numTiePoints[1];
+	int x=(xIndex+1)*imageSize[0]/(numTiePoints[0]+1);
+	int y=(yIndex+1)*imageSize[1]/(numTiePoints[1]+1);
+	tp.p=PPoint(Scalar(x)+Scalar(0.5),Scalar(y)+Scalar(0.5));
+	tp.o=captureCenter;
+	tiePoints.push_back(tp);
+	++tiePointIndex;
+	
 	tiePointCaptureFailed=false;
-	capturingTiePoint=true;
-	numCaptureFrames=numTiePointFrames;
-	std::cout<<"CalibrateProjector: Capturing "<<numTiePointFrames<<" tie point frames..."<<std::flush;
+	std::cout<<"CalibrateProjector: Captured tie point "<<tiePoints.size()<<std::endl;
+	
+	updateStatusUi(&disks);
+	Vrui::requestUpdate();
+	}
+
+void CalibrateProjector::resetCalibration(void)
+	{
+	tiePoints.clear();
+	tiePointIndex=0;
+	haveProjection=false;
+	tiePointCaptureFailed=false;
+	capturingTiePoint=false;
+	numCaptureFrames=0;
+	haveLastDiskCenter=false;
+	lastDiskCenter=OPoint::origin;
 	updateStatusUi(&diskList.getLockedValue());
+	Vrui::requestUpdate();
 	}
 
 void CalibrateProjector::calcCalibration(void)
