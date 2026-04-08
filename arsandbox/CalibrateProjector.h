@@ -108,6 +108,8 @@ class CalibrateProjector:public Vrui::Application
 	bool capturingTiePoint; // Flag whether the main thread is currently capturing a tie point
 	unsigned int numCaptureFrames; // Number of background or tie point frames still to capture
 	bool tiePointCaptureFailed; // Flag whether the most recent tie point capture request failed
+	bool haveLastDiskCenter; // Flag whether a previously-detected valid disk center exists
+	OPoint lastDiskCenter; // Most recently-detected valid disk center in object space
 	
 	ProjectorCalibrationWindow* calibrationControlDialog; // Dedicated calibration companion control window
 	
@@ -129,6 +131,7 @@ class CalibrateProjector:public Vrui::Application
 	void capturePointButtonCallback(Misc::CallbackData* cbData); // Callback when user requests a manual tie point capture from the companion UI
 	void recaptureBackgroundButtonCallback(Misc::CallbackData* cbData); // Callback when user requests background re-capture from the companion UI
 	void updateStatusUi(const Kinect::DiskExtractor::DiskList* disks); // Updates all dynamic status labels in the companion UI
+	void resetCalibration(void); // Resets collected tie points and calibration state
 	
 	/* Constructors and destructors: */
 	public:

@@ -9,16 +9,17 @@
 namespace
 	{
 	const bool xThreadsInitialized=XInitThreads()!=0;
+	const unsigned int minTiePointsRequired=12;
 	}
 
 ProjectorCalibrationWindow::ProjectorCalibrationWindow(void)
-	:display(0),window(0),backBuffer(0),drawTarget(0),graphicsContext(0),
+	:display(0),window(0),graphicsContext(0),
 	 arrowCursor(0),handCursor(0),
 	 closeRequested(false),
 	 hoverX(-1),hoverY(-1),
-	 capturePointRequested(false),recaptureBackgroundRequested(false),
+	 capturePointRequested(false),recaptureBackgroundRequested(false),resetCalibrationRequested(false),finishCalibrationRequested(false),
 	 tiePointCount(0),
-	 titleFont(0),headingFont(0),bodyFont(0),
+	 titleFont(0),headingFont(0),bodyFont(0),emphasisFont(0),
 	 captureButtonFlash(false),recaptureButtonFlash(false)
 	{
 	(void)xThreadsInitialized;
@@ -28,8 +29,6 @@ ProjectorCalibrationWindow::ProjectorCalibrationWindow(void)
 	
 	const int screen=DefaultScreen(display);
 	window=XCreateSimpleWindow(display,RootWindow(display,screen),0,0,windowWidth,windowHeight,1,BlackPixel(display,screen),BlackPixel(display,screen));
-	backBuffer=XCreatePixmap(display,window,windowWidth,windowHeight,DefaultDepth(display,screen));
-	drawTarget=window;
 	XStoreName(display,window,"Projector Calibration Control Window");
 	
 	XSetWindowAttributes attrs;
@@ -61,12 +60,15 @@ ProjectorCalibrationWindow::ProjectorCalibrationWindow(void)
 	titleFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--90-*-*-*-*-*-*-*");
 	headingFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--46-*-*-*-*-*-*-*");
 	bodyFont=XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--34-*-*-*-*-*-*-*");
+	emphasisFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--34-*-*-*-*-*-*-*");
 	if(titleFont==0)
 		titleFont=XLoadQueryFont(display,"9x15bold");
 	if(headingFont==0)
 		headingFont=XLoadQueryFont(display,"10x20");
 	if(bodyFont==0)
 		bodyFont=XLoadQueryFont(display,"9x15");
+	if(emphasisFont==0)
+		emphasisFont=bodyFont;
 	
 	captureButtonRect.x=80;
 	captureButtonRect.y=160;
@@ -87,6 +89,10 @@ ProjectorCalibrationWindow::ProjectorCalibrationWindow(void)
 	runStreamTableButtonRect.y=880;
 	runStreamTableButtonRect.w=340;
 	runStreamTableButtonRect.h=70;
+	resetButtonRect.x=1140;
+	resetButtonRect.y=880;
+	resetButtonRect.w=320;
+	resetButtonRect.h=70;
 	
 	captureInfoIconRect.x=captureButtonRect.x+captureButtonRect.w-40;
 	captureInfoIconRect.y=captureButtonRect.y+14;
@@ -115,14 +121,14 @@ ProjectorCalibrationWindow::~ProjectorCalibrationWindow(void)
 			XFreeCursor(display,handCursor);
 		if(graphicsContext!=0)
 			XFreeGC(display,graphicsContext);
-		if(backBuffer!=0)
-			XFreePixmap(display,backBuffer);
 		if(titleFont!=0)
 			XFreeFont(display,titleFont);
 		if(headingFont!=0)
 			XFreeFont(display,headingFont);
 		if(bodyFont!=0)
 			XFreeFont(display,bodyFont);
+		if(emphasisFont!=0&&emphasisFont!=bodyFont)
+			XFreeFont(display,emphasisFont);
 		if(window!=0)
 			XDestroyWindow(display,window);
 		XCloseDisplay(display);
@@ -147,29 +153,29 @@ void ProjectorCalibrationWindow::setColor(unsigned long color)
 void ProjectorCalibrationWindow::drawButton(const Rect& rect,const char* label,bool hovered,bool active)
 	{
 	setColor(active?colorButtonActive:(hovered?colorButtonHover:colorButton));
-	XFillRectangle(display,drawTarget,graphicsContext,rect.x,rect.y,rect.w,rect.h);
+	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	setColor(colorBorder);
-	XDrawRectangle(display,drawTarget,graphicsContext,rect.x,rect.y,rect.w,rect.h);	
+	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);	
 	if(active)
 		{
 		setColor(colorAccent);
-		XDrawRectangle(display,drawTarget,graphicsContext,rect.x+2,rect.y+2,rect.w-4,rect.h-4);
+		XDrawRectangle(display,window,graphicsContext,rect.x+2,rect.y+2,rect.w-4,rect.h-4);
 		}
 	setColor(colorText);
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
-	XDrawString(display,drawTarget,graphicsContext,rect.x+30,rect.y+65,label,int(strlen(label)));
+	XDrawString(display,window,graphicsContext,rect.x+30,rect.y+65,label,int(strlen(label)));
 	}
 
 void ProjectorCalibrationWindow::drawTextLine(int x,int y,const std::string& text)
 	{
-	XDrawString(display,drawTarget,graphicsContext,x,y,text.c_str(),int(text.size()));
+	XDrawString(display,window,graphicsContext,x,y,text.c_str(),int(text.size()));
 	}
 
 void ProjectorCalibrationWindow::drawInfoIcon(const Rect& rect,bool hovered)
 	{
 	setColor(hovered?colorAccent:colorSubtleText);
-	XDrawArc(display,drawTarget,graphicsContext,rect.x,rect.y,rect.w,rect.h,0,360*64);
+	XDrawArc(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h,0,360*64);
 	setColor(colorText);
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
@@ -177,7 +183,7 @@ void ProjectorCalibrationWindow::drawInfoIcon(const Rect& rect,bool hovered)
 	const int textWidth=bodyFont!=0?XTextWidth(bodyFont,infoLabel,1):0;
 	const int textX=rect.x+(rect.w-textWidth)/2 + 1;
 	const int textY=bodyFont!=0?rect.y+(rect.h+bodyFont->ascent-bodyFont->descent)/2:rect.y+rect.h-4;
-	XDrawString(display,drawTarget,graphicsContext,textX,textY,infoLabel,1);
+	XDrawString(display,window,graphicsContext,textX,textY,infoLabel,1);
 	}
 
 void ProjectorCalibrationWindow::drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3)
@@ -187,44 +193,46 @@ void ProjectorCalibrationWindow::drawTooltip(const Rect& anchor,const char* line
 	const int tooltipX=anchor.x-tooltipWidth+anchor.w;
 	const int tooltipY=anchor.y+anchor.h+8;
 	setColor(colorPanel);
-	XFillRectangle(display,drawTarget,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
+	XFillRectangle(display,window,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
 	setColor(colorAccent);
-	XDrawRectangle(display,drawTarget,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
+	XDrawRectangle(display,window,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+12,tooltipY+28,line1,int(strlen(line1)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+12,tooltipY+54,line2,int(strlen(line2)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+12,tooltipY+80,line3,int(strlen(line3)));
+	XDrawString(display,window,graphicsContext,tooltipX+12,tooltipY+28,line1,int(strlen(line1)));
+	XDrawString(display,window,graphicsContext,tooltipX+12,tooltipY+54,line2,int(strlen(line2)));
+	XDrawString(display,window,graphicsContext,tooltipX+12,tooltipY+80,line3,int(strlen(line3)));
 	}
 
 void ProjectorCalibrationWindow::drawTipsTooltip(const Rect& anchor)
 	{
 	const int tooltipWidth=980;
-	const int tooltipHeight=220;
+	const int tooltipHeight=250;
 	const int tooltipX=anchor.x+anchor.w+14;
 	const int tooltipY=anchor.y-20;
 	setColor(colorPanel);
-	XFillRectangle(display,drawTarget,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
+	XFillRectangle(display,window,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
 	setColor(colorAccent);
-	XDrawRectangle(display,drawTarget,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
+	XDrawRectangle(display,window,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
 	const char* line0="Calibration Tips";
 	const char* line1="- Hold the disk flat and steady";
 	const char* line2="- Try to keep hands and body out of view";
-	const char* line3="- Include high and low areas across tie points";
+	const char* line3="- Capture tie points on flat sand, raised areas, and inside holes";
 	const char* line4="- Green circle size may differ from calibration disk (that is okay!)";
 	const char* line5="- Add more tie points if needed and then red crosshair should stay centered when complete";
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+14,tooltipY+40,line0,int(strlen(line0)));
+	const char* line6="- Exiting the Calibration Projector early without saving will cancel all tie points";
+	XDrawString(display,window,graphicsContext,tooltipX+14,tooltipY+40,line0,int(strlen(line0)));
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+18,tooltipY+76,line1,int(strlen(line1)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+18,tooltipY+106,line2,int(strlen(line2)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+18,tooltipY+136,line3,int(strlen(line3)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+18,tooltipY+166,line4,int(strlen(line4)));
-	XDrawString(display,drawTarget,graphicsContext,tooltipX+18,tooltipY+196,line5,int(strlen(line5)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+76,line1,int(strlen(line1)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+106,line2,int(strlen(line2)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+136,line3,int(strlen(line3)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+166,line4,int(strlen(line4)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+196,line5,int(strlen(line5)));
+	XDrawString(display,window,graphicsContext,tooltipX+18,tooltipY+226,line6,int(strlen(line6)));
 	}
 
 void ProjectorCalibrationWindow::updateCursor(void)
@@ -233,7 +241,8 @@ void ProjectorCalibrationWindow::updateCursor(void)
 		captureButtonRect.contains(hoverX,hoverY)||
 		recaptureBackgroundButtonRect.contains(hoverX,hoverY)||
 		exitButtonRect.contains(hoverX,hoverY)||
-		runStreamTableButtonRect.contains(hoverX,hoverY)||
+		resetButtonRect.contains(hoverX,hoverY)||
+		(tiePointCount>=minTiePointsRequired&&runStreamTableButtonRect.contains(hoverX,hoverY))||
 		captureInfoIconRect.contains(hoverX,hoverY)||
 		recaptureInfoIconRect.contains(hoverX,hoverY)||
 		calibrationTipsIconRect.contains(hoverX,hoverY);
@@ -242,14 +251,13 @@ void ProjectorCalibrationWindow::updateCursor(void)
 
 void ProjectorCalibrationWindow::draw(void)
 	{
-	drawTarget=backBuffer!=0?Drawable(backBuffer):Drawable(window);
 	setColor(colorBackground);
-	XFillRectangle(display,drawTarget,graphicsContext,0,0,windowWidth,windowHeight);
+	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
 	
 	setColor(colorPanel);
-	XFillRectangle(display,drawTarget,graphicsContext,40,30,1840,1020);
+	XFillRectangle(display,window,graphicsContext,40,30,1840,1020);
 	setColor(colorBorder);
-	XDrawRectangle(display,drawTarget,graphicsContext,40,30,1840,1020);
+	XDrawRectangle(display,window,graphicsContext,40,30,1840,1020);
 	
 	if(titleFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
@@ -257,9 +265,9 @@ void ProjectorCalibrationWindow::draw(void)
 	drawTextLine(70,95,"Projector Calibration Control Window");
 
 	setColor(colorError);
-	XFillRectangle(display,drawTarget,graphicsContext,exitButtonRect.x,exitButtonRect.y,exitButtonRect.w,exitButtonRect.h);
+	XFillRectangle(display,window,graphicsContext,exitButtonRect.x,exitButtonRect.y,exitButtonRect.w,exitButtonRect.h);
 	setColor(colorBorder);
-	XDrawRectangle(display,drawTarget,graphicsContext,exitButtonRect.x,exitButtonRect.y,exitButtonRect.w,exitButtonRect.h);
+	XDrawRectangle(display,window,graphicsContext,exitButtonRect.x,exitButtonRect.y,exitButtonRect.w,exitButtonRect.h);
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
@@ -268,17 +276,32 @@ void ProjectorCalibrationWindow::draw(void)
 	const int exitBaseline=headingFont!=0?exitButtonRect.y+(exitButtonRect.h+headingFont->ascent-headingFont->descent)/2:exitButtonRect.y+42;
 	drawTextLine(exitButtonRect.x+(exitButtonRect.w-exitLabelWidth)/2,exitBaseline,exitLabel);
 
-	setColor(colorSuccess);
-	XFillRectangle(display,drawTarget,graphicsContext,runStreamTableButtonRect.x,runStreamTableButtonRect.y,runStreamTableButtonRect.w,runStreamTableButtonRect.h);
+
+	setColor(colorError);
+	XFillRectangle(display,window,graphicsContext,resetButtonRect.x,resetButtonRect.y,resetButtonRect.w,resetButtonRect.h);
 	setColor(colorBorder);
-	XDrawRectangle(display,drawTarget,graphicsContext,runStreamTableButtonRect.x,runStreamTableButtonRect.y,runStreamTableButtonRect.w,runStreamTableButtonRect.h);
+	XDrawRectangle(display,window,graphicsContext,resetButtonRect.x,resetButtonRect.y,resetButtonRect.w,resetButtonRect.h);
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
-	const char* runLabel="Run Stream Table";
-	const int runLabelWidth=headingFont!=0?XTextWidth(headingFont,runLabel,int(strlen(runLabel))):0;
-	const int runBaseline=headingFont!=0?runStreamTableButtonRect.y+(runStreamTableButtonRect.h+headingFont->ascent-headingFont->descent)/2:runStreamTableButtonRect.y+47;
-	drawTextLine(runStreamTableButtonRect.x+(runStreamTableButtonRect.w-runLabelWidth)/2,runBaseline,runLabel);
+	const char* resetLabel="Reset";
+	const int resetLabelWidth=headingFont!=0?XTextWidth(headingFont,resetLabel,int(strlen(resetLabel))):0;
+	const int resetBaseline=headingFont!=0?resetButtonRect.y+(resetButtonRect.h+headingFont->ascent-headingFont->descent)/2:resetButtonRect.y+47;
+	drawTextLine(resetButtonRect.x+(resetButtonRect.w-resetLabelWidth)/2,resetBaseline,resetLabel);
+	if(tiePointCount>=minTiePointsRequired)
+		{
+		setColor(colorSuccess);
+		XFillRectangle(display,window,graphicsContext,runStreamTableButtonRect.x,runStreamTableButtonRect.y,runStreamTableButtonRect.w,runStreamTableButtonRect.h);
+		setColor(colorBorder);
+		XDrawRectangle(display,window,graphicsContext,runStreamTableButtonRect.x,runStreamTableButtonRect.y,runStreamTableButtonRect.w,runStreamTableButtonRect.h);
+		if(headingFont!=0)
+			XSetFont(display,graphicsContext,headingFont->fid);
+		setColor(colorText);
+		const char* runLabel="Save Projector Calibration";
+		const int runLabelWidth=headingFont!=0?XTextWidth(headingFont,runLabel,int(strlen(runLabel))):0;
+		const int runBaseline=headingFont!=0?runStreamTableButtonRect.y+(runStreamTableButtonRect.h+headingFont->ascent-headingFont->descent)/2:runStreamTableButtonRect.y+47;
+		drawTextLine(runStreamTableButtonRect.x+(runStreamTableButtonRect.w-runLabelWidth)/2,runBaseline,runLabel);
+		}
 
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
@@ -306,21 +329,24 @@ void ProjectorCalibrationWindow::draw(void)
 	const int statusCenterX=1410;
 	const int statusCenterY=560;
 	const int statusRadius=185;
-	const unsigned int requiredTiePoints=12;
+	const unsigned int requiredTiePoints=minTiePointsRequired;
 	const double progress=tiePointCount<requiredTiePoints?double(tiePointCount)/double(requiredTiePoints):1.0;
 	const bool complete=tiePointCount>=requiredTiePoints;
 	const int progressAngle=int(progress*360.0*64.0);
 
 	setColor(colorBackground);
-	XFillArc(display,drawTarget,graphicsContext,statusCenterX-statusRadius,statusCenterY-statusRadius,statusRadius*2,statusRadius*2,0,360*64);
+	XFillArc(display,window,graphicsContext,statusCenterX-statusRadius,statusCenterY-statusRadius,statusRadius*2,statusRadius*2,0,360*64);
+	XSetLineAttributes(display,graphicsContext,16,LineSolid,CapButt,JoinRound);
+	setColor(colorBorder);
+	XDrawArc(display,window,graphicsContext,statusCenterX-statusRadius+8,statusCenterY-statusRadius+8,(statusRadius-8)*2,(statusRadius-8)*2,0,360*64);
 	if(progressAngle>0)
 		{
 		setColor(colorSuccess);
-		XFillArc(display,drawTarget,graphicsContext,statusCenterX-statusRadius,statusCenterY-statusRadius,statusRadius*2,statusRadius*2,90*64,-progressAngle);
+		XDrawArc(display,window,graphicsContext,statusCenterX-statusRadius+8,statusCenterY-statusRadius+8,(statusRadius-8)*2,(statusRadius-8)*2,90*64,-progressAngle);
 		}
-	setColor(complete?colorSuccess:colorButtonActive);
-	XDrawArc(display,drawTarget,graphicsContext,statusCenterX-statusRadius,statusCenterY-statusRadius,statusRadius*2,statusRadius*2,0,360*64);
-	XDrawArc(display,drawTarget,graphicsContext,statusCenterX-statusRadius+6,statusCenterY-statusRadius+6,(statusRadius-6)*2,(statusRadius-6)*2,0,360*64);
+	XSetLineAttributes(display,graphicsContext,1,LineSolid,CapButt,JoinMiter);
+	setColor(colorBorder);
+	XDrawArc(display,window,graphicsContext,statusCenterX-statusRadius,statusCenterY-statusRadius,statusRadius*2,statusRadius*2,0,360*64);
 
 	const char* statusText=complete?"Complete":"In Progress";
 	if(headingFont!=0)
@@ -331,9 +357,9 @@ void ProjectorCalibrationWindow::draw(void)
 
 	char tiePointMessage[96];
 	snprintf(tiePointMessage,sizeof(tiePointMessage),"Tie Points Collected: %u / 12",tiePointCount);
-	if(bodyFont!=0)
-		XSetFont(display,graphicsContext,bodyFont->fid);
-	const int tiePointMessageWidth=bodyFont!=0?XTextWidth(bodyFont,tiePointMessage,int(strlen(tiePointMessage))):0;
+	if(emphasisFont!=0)
+		XSetFont(display,graphicsContext,emphasisFont->fid);
+	const int tiePointMessageWidth=emphasisFont!=0?XTextWidth(emphasisFont,tiePointMessage,int(strlen(tiePointMessage))):0;
 	setColor(colorText);
 	drawTextLine(statusCenterX-tiePointMessageWidth/2,statusCenterY+45,tiePointMessage);
 	
@@ -349,8 +375,8 @@ void ProjectorCalibrationWindow::draw(void)
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	drawTextLine(145,425,"Place the calibration disk in the stream table and line up the white crosshair with the disk");
-	drawTextLine(145,455,"crosshair so they match as closely as possible.");
+	drawTextLine(145,425,"Place the calibration disk flat above the sand and keep the disk still.");
+	drawTextLine(145,455,"Move the disk until the white crosshair in the software is centered with the disk crosshair.");
 
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
@@ -359,17 +385,17 @@ void ProjectorCalibrationWindow::draw(void)
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	drawTextLine(145,535,"Hold the disk level and press \"Capture Tie Point\".");
+	drawTextLine(145,535,"Hold the disk still (steady and flat) and press \"Capture Tie Point\" to record current position.");
 
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
-	drawTextLine(120,580,"3. Repeat across the stream table");
+	drawTextLine(120,580,"3. Move the disk to next location on the stream table");
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	drawTextLine(145,615,"Collect at least twelve points in different locations and heights (above or below the sand)");
-	drawTextLine(145,645,"across the stream table.");
+	drawTextLine(145,615,"Capture at least 12 tie points across the stream table, including flat areas and raised sand.");
+	drawTextLine(145,645,"This includes tie points inside holes/above sand so both high and low surface levels are recorded.");
 
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
@@ -378,8 +404,8 @@ void ProjectorCalibrationWindow::draw(void)
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorWarning);
-	drawTextLine(145,725,"Dig a hole then press \"Re-Capture Background\". The calibrattion will briefly turn red.");
-	drawTextLine(145,755,"Place the disk at the bottom, align it, and press \"Capture Tie Point\" at that tie point.");
+	drawTextLine(145,725,"Dig a hole in the sand, then press \"Re-Capture Background\" and wait for the screen to turn red and return to normal.");
+	drawTextLine(145,755,"Place the disk flat at the bottom of the hole, center the white crosshair on it, and press \"Capture Tie Point\".");
 
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
@@ -388,18 +414,16 @@ void ProjectorCalibrationWindow::draw(void)
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorSuccess);
-	drawTextLine(145,835,"After the twelve required tie points, check that the red crosshair lands in the center of");
-	drawTextLine(145,865,"the disk anywhere in the stream table.");
+	drawTextLine(145,835,"After at least 12 tie points, place the disk anywhere in the stream table.");
+	drawTextLine(145,865,"Confirm the red crosshair is aligned with the disk (a green circle should appear on the disk).");
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
 	drawTextLine(145,905,"Then");
-	setColor(colorError);
-	drawTextLine(235,905,"Exit");
-	setColor(colorText);
-	drawTextLine(315,905,"or");
 	setColor(colorSuccess);
-	drawTextLine(375,905,"Run Stream Table");
+	drawTextLine(200,905,"Save Projector Calibration");
+	setColor(colorText);
+	drawTextLine(475,905,"to save all tie points");
 
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
@@ -412,9 +436,6 @@ void ProjectorCalibrationWindow::draw(void)
 
 	if(showCalibrationTipsTooltip)
 		drawTipsTooltip(calibrationTipsIconRect);
-
-	if(backBuffer!=0)
-		XCopyArea(display,backBuffer,window,graphicsContext,0,0,windowWidth,windowHeight,0,0);
 	
 	XFlush(display);
 	}
@@ -451,6 +472,12 @@ bool ProjectorCalibrationWindow::processEvents(void)
 					}
 				else if(exitButtonRect.contains(event.xbutton.x,event.xbutton.y))
 					closeRequested=true;
+				else if(resetButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					resetCalibrationRequested=true;
+				else if(tiePointCount>=minTiePointsRequired&&runStreamTableButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					{
+					finishCalibrationRequested=true;
+					}
 				draw();
 				break;
 			
@@ -480,8 +507,25 @@ bool ProjectorCalibrationWindow::consumeRecaptureBackgroundRequest(void)
 	return result;
 	}
 
+
+bool ProjectorCalibrationWindow::consumeResetCalibrationRequest(void)
+	{
+	bool result=resetCalibrationRequested;
+	resetCalibrationRequested=false;
+	return result;
+	}
+
+bool ProjectorCalibrationWindow::consumeFinishCalibrationRequest(void)
+	{
+	bool result=finishCalibrationRequested;
+	finishCalibrationRequested=false;
+	return result;
+	}
+
 void ProjectorCalibrationWindow::setTiePointCount(unsigned int newTiePointCount)
 	{
+	if(tiePointCount==newTiePointCount)
+		return;
 	tiePointCount=newTiePointCount;
 	draw();
 	}

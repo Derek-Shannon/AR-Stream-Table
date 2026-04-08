@@ -24,8 +24,6 @@ class ProjectorCalibrationWindow
 	
 	Display* display;
 	Window window;
-	Pixmap backBuffer;
-	Drawable drawTarget;
 	GC graphicsContext;
 	Atom wmDeleteWindow;
 	Cursor arrowCursor;
@@ -35,6 +33,7 @@ class ProjectorCalibrationWindow
 	Rect captureButtonRect;
 	Rect recaptureBackgroundButtonRect;
 	Rect exitButtonRect;
+	Rect resetButtonRect;
 	Rect runStreamTableButtonRect;
 	Rect captureInfoIconRect;
 	Rect recaptureInfoIconRect;
@@ -44,6 +43,8 @@ class ProjectorCalibrationWindow
 	
 	bool capturePointRequested;
 	bool recaptureBackgroundRequested;
+	bool resetCalibrationRequested;
+	bool finishCalibrationRequested;
 	unsigned int tiePointCount;
 	
 	unsigned long colorBackground;
@@ -62,6 +63,7 @@ class ProjectorCalibrationWindow
 	XFontStruct* titleFont;
 	XFontStruct* headingFont;
 	XFontStruct* bodyFont;
+	XFontStruct* emphasisFont;
 	bool captureButtonFlash;
 	bool recaptureButtonFlash;
 	
@@ -82,6 +84,8 @@ class ProjectorCalibrationWindow
 	bool processEvents(void);
 	bool consumeCapturePointRequest(void);
 	bool consumeRecaptureBackgroundRequest(void);
+	bool consumeResetCalibrationRequest(void);
+	bool consumeFinishCalibrationRequest(void);
 	void setTiePointCount(unsigned int newTiePointCount);
 	
 	};
