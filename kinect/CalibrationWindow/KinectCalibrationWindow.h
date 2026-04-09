@@ -4,6 +4,9 @@
 #include <X11/Xlib.h>
 #include <string>
 
+/* Forward declaration so we can hold a pointer without a circular include */
+class RawKinectViewer;
+
 class KinectCalibrationWindow
 	{
 	private:
@@ -30,6 +33,9 @@ class KinectCalibrationWindow
 	Cursor handCursor;
 	bool closeRequested;
 	
+	/* Pointer back to the owning application for triggering actions */
+	RawKinectViewer* viewer;
+	
 	/* Button rects */
 	Rect averageFramesButtonRect;
 	Rect extractPlanesButtonRect;
@@ -52,6 +58,7 @@ class KinectCalibrationWindow
 	unsigned long colorSubtleText;
 	unsigned long colorButton;
 	unsigned long colorButtonHover;
+	unsigned long colorButtonActive;
 	unsigned long colorFinish;
 	unsigned long colorFinishHover;
 	unsigned long colorAccent;
@@ -73,7 +80,8 @@ class KinectCalibrationWindow
 	void draw(void);
 	
 	public:
-	KinectCalibrationWindow(void);
+	/* Constructor takes a pointer to the owning RawKinectViewer */
+	KinectCalibrationWindow(RawKinectViewer* viewer);
 	~KinectCalibrationWindow(void);
 	
 	bool processEvents(void);

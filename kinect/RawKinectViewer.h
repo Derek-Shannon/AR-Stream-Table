@@ -165,6 +165,9 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	RawKinectViewer(int& argc,char**& argv);
 	virtual ~RawKinectViewer(void);
 	
+	/* Methods callable from companion UI windows: */
+	void toggleAverageFrames(void);
+
 	/* Methods from Vrui::Application: */
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void frame(void);

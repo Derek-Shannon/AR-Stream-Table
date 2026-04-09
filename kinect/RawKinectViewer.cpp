@@ -606,6 +606,23 @@ void RawKinectViewer::averageFramesCallback(GLMotif::ToggleButton::ValueChangedC
 		}
 	}
 
+void RawKinectViewer::toggleAverageFrames(void)
+	{
+	/* Flip the averaging state */
+	showAverageFrame=!showAverageFrame;
+	if(showAverageFrame)
+		{
+		/* Start collecting a new average frame */
+		requestAverageFrame(0);
+		}
+	else
+		{
+		/* Invalidate the current average frame */
+		averageFrameValid=false;
+		depthPlaneValid=false;
+		}
+	}
+
 void RawKinectViewer::saveAverageFrameOKCallback(GLMotif::FileSelectionDialog::OKCallbackData* cbData)
 	{
 	try
@@ -986,7 +1003,7 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	camera->startStreaming(Misc::createFunctionCall(this,&RawKinectViewer::colorStreamingCallback),Misc::createFunctionCall(this,&RawKinectViewer::depthStreamingCallback));
 
 	// Start the Kinect Calibration control window (RawKinectViewer companion UI)
-	CalibrateKinectControl = new KinectCalibrationWindow();
+	CalibrateKinectControl = new KinectCalibrationWindow(this);
 	
 	/* Select an invalid pixel: */
 	selectedPixel[0]=selectedPixel[1]=~0x0U;

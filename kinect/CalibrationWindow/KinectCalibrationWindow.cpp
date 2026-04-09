@@ -1,4 +1,5 @@
 #include "KinectCalibrationWindow.h"
+#include "../RawKinectViewer.h"
 
 #include <stdexcept>
 #include <stdio.h>
@@ -12,10 +13,11 @@ namespace
 	const bool xThreadsInitialized=XInitThreads()!=0;
 	}
 
-KinectCalibrationWindow::KinectCalibrationWindow(void)
+KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	:display(0),window(0),graphicsContext(0),
 	 arrowCursor(0),handCursor(0),
 	 closeRequested(false),
+	 viewer(viewer),
 	 hoverX(-1),hoverY(-1),
 	 titleFont(0),headingFont(0),bodyFont(0)
 	{
@@ -49,6 +51,7 @@ KinectCalibrationWindow::KinectCalibrationWindow(void)
 	colorSubtleText=allocColor("#9db3d9",WhitePixel(display,screen));
 	colorButton=allocColor("#274a88",WhitePixel(display,screen));
 	colorButtonHover=allocColor("#3262b4",WhitePixel(display,screen));
+	colorButtonActive=allocColor("#1f8f5f",WhitePixel(display,screen));
 	colorFinish=allocColor("#b02020",WhitePixel(display,screen));
 	colorFinishHover=allocColor("#d43030",WhitePixel(display,screen));
 	colorAccent=allocColor("#4cc9f0",WhitePixel(display,screen));
@@ -67,10 +70,7 @@ KinectCalibrationWindow::KinectCalibrationWindow(void)
 	if(bodyFont==0)
 		bodyFont=XLoadQueryFont(display,"9x15");
 	
-	/* --- Button layout ---
-	   Three equal-width quick-help buttons in a row near the top,
-	   with info icons in their top-right corners.
-	   "Finish Kinect Calibration" sits at the bottom-right. */
+	/* --- Button layout --- */
 	const int btnY=170;
 	const int btnH=110;
 	const int btnW=560;
@@ -168,8 +168,13 @@ void KinectCalibrationWindow::setColor(unsigned long color)
 
 void KinectCalibrationWindow::drawButton(const Rect& rect,const char* label,bool hovered,unsigned long baseColor)
 	{
-	/* Fill */
-	setColor(hovered?(baseColor==colorFinish?colorFinishHover:colorButtonHover):baseColor);
+	/* Choose fill color: active green overrides hover/base for the finish button */
+	unsigned long fillColor;
+	if(hovered)
+		fillColor=(baseColor==colorFinish)?colorFinishHover:colorButtonHover;
+	else
+		fillColor=baseColor;
+	setColor(fillColor);
 	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	/* Border */
 	setColor(colorBorder);
@@ -200,7 +205,6 @@ void KinectCalibrationWindow::drawTooltip(const Rect& anchor,const char* line1,c
 	{
 	const int tooltipWidth=800;
 	const int tooltipHeight=96;
-	/* Anchor tooltip below the icon, clamped so it doesn't fall off the right edge */
 	int tooltipX=anchor.x+anchor.w/2-tooltipWidth/2;
 	if(tooltipX+tooltipWidth>windowWidth-40)
 		tooltipX=windowWidth-40-tooltipWidth;
@@ -234,6 +238,9 @@ void KinectCalibrationWindow::updateCursor(void)
 
 void KinectCalibrationWindow::draw(void)
 	{
+	/* Read the current averaging state from the viewer so the button color stays in sync */
+	const bool averagingActive = viewer!=0 && viewer->showAverageFrame;
+
 	/* Background */
 	setColor(colorBackground);
 	XFillRectangle(display,window,graphicsContext,0,0,windowWidth,windowHeight);
@@ -248,7 +255,7 @@ void KinectCalibrationWindow::draw(void)
 	if(titleFont!=0)
 		XSetFont(display,graphicsContext,titleFont->fid);
 	setColor(colorAccent);
-	drawTextLine(70,100,"Kinect Calibration Control Window");
+	drawTextLine(70,100,"Calibrate Kinect Control Window");
 	
 	/* Quick-help buttons subtitle */
 	if(bodyFont!=0)
@@ -256,9 +263,10 @@ void KinectCalibrationWindow::draw(void)
 	setColor(colorSubtleText);
 	drawTextLine(70,150,"Quick Help Buttons (hover information icon for more information)");
 	
-	/* Three quick-help buttons */
+	/* Average Frames button — green when active, blue when inactive */
 	drawButton(averageFramesButtonRect,"Average Frames",
-		averageFramesButtonRect.contains(hoverX,hoverY),colorButton);
+		averageFramesButtonRect.contains(hoverX,hoverY),
+		averagingActive?colorButtonActive:colorButton);
 	drawButton(extractPlanesButtonRect,"Set Extract Planes Tool",
 		extractPlanesButtonRect.contains(hoverX,hoverY),colorButton);
 	drawButton(measure3DButtonRect,"Set Measure 3D Positions Tool",
@@ -269,22 +277,22 @@ void KinectCalibrationWindow::draw(void)
 	drawInfoIcon(extractPlanesInfoIconRect,extractPlanesInfoIconRect.contains(hoverX,hoverY));
 	drawInfoIcon(measure3DInfoIconRect,measure3DInfoIconRect.contains(hoverX,hoverY));
 	
-	/* Tooltips — only one can show at a time */
+	/* Tooltips — only one shows at a time */
 	if(averageFramesInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(averageFramesInfoIconRect,
 			"Average Frames captures a stable depth average over many frames.",
-			"Use this before extracting planes to reduce depth noise.",
-			"Trigger from the RawKinectViewer main menu.");
+			"Remove ALL hands, persons, or other moving objects from within the frame while averaging.",
+			"Use this before extracting planes to reduce depth noise.");
 	else if(extractPlanesInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(extractPlanesInfoIconRect,
-			"Set Extract Planes Tool binds the plane-extraction tool to an input.",
-			"Hold the assigned key/button over the depth image to extract a plane.",
-			"You will need this tool active to complete the calibration steps below.");
+			"Sets the Extract Planes Tool to your 'E' key.",
+			"Move cursor to the top left corner of your flat plane.",
+			"Press and hold 'E' while moving your cursor to the bottom right corner of the flat plane, release.");
 	else if(measure3DInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(measure3DInfoIconRect,
-			"Set Measure 3D Positions Tool binds the 3D measurement tool to an input.",
-			"Use it to place calibration points in 3D space on the depth image.",
-			"This tool must be active when collecting tie points.");
+			"Sets the Measure 3D Positions Tool to your 'M' key.",
+			"Move the cursor to the correct, inner corner of the table.",
+			"Press the 'M' key to capture the 3D position of that corner.");
 	
 	/* Calibration steps heading */
 	if(headingFont!=0)
@@ -292,21 +300,21 @@ void KinectCalibrationWindow::draw(void)
 	setColor(colorAccent);
 	drawTextLine(70,360,"Kinect Calibration Steps:");
 	
-	/* Numbered steps — placeholder text, replace when steps are finalised */
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	drawTextLine(70,405, "1.  ...");
-	drawTextLine(70,445, "2.  ...");
-	drawTextLine(70,485, "3.  ...");
-	drawTextLine(70,525, "4.  ...");
-	drawTextLine(70,565, "5.  ...");
-	drawTextLine(70,605, "6.  ...");
-	drawTextLine(70,645, "7.  ...");
-	drawTextLine(70,685, "8.  ...");
-	drawTextLine(70,725, "9.  ...");
-	drawTextLine(70,765,"10.  ...");
-	drawTextLine(70,805,"11.  ...");
+	drawTextLine(70,405, "1.  Cover the steam table (or a portion of it) with a flat piece of cardboard or other material");
+	drawTextLine(70,445, "2.  Zoom in (using mouse wheel down) and pan (holding 'Z' and dragging mouse) to enlarge the depth view of the table");
+	drawTextLine(70,485, "3.  Remove ALL hands, persons, and other moving objects within the depth viewer and press the 'Average Frames' button.");
+	drawTextLine(70,525, "    DO NOT place hands or move anything within the depth viewer for 3 seconds. Otherwise, press 'Average Frames' and retry");
+	drawTextLine(70,565, "4.  Press the 'Set Extract Planes Tool' button. This will assign the tool to your 'E' key");
+	drawTextLine(70,605, "5.  Move your cursor to the top left corner of the flat plane on your table");
+	drawTextLine(70,645, "    Press and hold your 'E' key while dragging cursor to the bottom right corner of the flat plane. Release the 'E' Key");
+	drawTextLine(70,685, "6.  Toggle the Average Frames OFF by pressing the 'Average Frames' button");
+	drawTextLine(70,725, "7.  Remove the cardboard, or flat material, from the table and repeat Step 3 to toggle Average Frames ON");
+	drawTextLine(70,765, "8.  Press the 'Set Measure 3D Positions Tool' button. This will assign the tool to your 'M' key");
+	drawTextLine(70,805, "9.  Move your cursor to INSIDE of the Lower-Left corner of the table and press the 'M' key");
+	drawTextLine(70,845, "10. Repeat Step 9 for the Lower-Right, then the Upper-Left, and then the Upper-Right corners");
 	
 	/* Finish Calibration button — red, bottom-right */
 	drawButton(finishCalibrationButtonRect,"Finish Kinect Calibration",
@@ -335,8 +343,15 @@ bool KinectCalibrationWindow::processEvents(void)
 				break;
 			
 			case ButtonPress:
-				if(finishCalibrationButtonRect.contains(event.xbutton.x,event.xbutton.y))
+				if(averageFramesButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					{
+					if(viewer!=0)
+						viewer->toggleAverageFrames();
+					}
+				else if(finishCalibrationButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					{
 					closeRequested=true;
+					}
 				draw();
 				break;
 			
