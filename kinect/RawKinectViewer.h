@@ -45,8 +45,11 @@ class PopupMenu;
 class PopupWindow;
 }
 
+class KinectCalibrationWindow;
+
 class RawKinectViewer:public Vrui::Application,public GLObject
 	{
+	friend class KinectCalibrationWindow;
 	/* Embedded classes: */
 	private:
 	typedef Geometry::Plane<float,3> Plane; // Type for planes in depth camera or world space
@@ -125,6 +128,8 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	GLMotif::PopupWindow* depthRangeDialog; // A dialog window to adjust the depth frame's color mapping
 	GLMotif::PopupMenu* mainMenu; // The program's main menu
 	GLMotif::PopupWindow* averageDepthFrameDialog; // A dialog window indicating that an average depth frame is being captured
+
+	KinectCalibrationWindow* CalibrateKinectControl; // Dedicated raw kinect viewer companion control window
 	
 	/* Private methods: */
 	void mapDepth(const Offset& pixel,float depth,GLubyte* colorPtr) const; // Maps a depth value to a color

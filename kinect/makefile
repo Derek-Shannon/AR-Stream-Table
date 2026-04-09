@@ -374,7 +374,7 @@ KinectUtil: $(EXEDIR)/KinectUtil
 # internally and externally calibrate Kinect cameras:
 #
 
-$(EXEDIR)/RawKinectViewer: PACKAGES += MYKINECT MYVRUI MYGLMOTIF MYIMAGES MYGLSUPPORT MYGLWRAPPERS MYGEOMETRY MYMATH MYIO MYTHREADS MYMISC GL
+$(EXEDIR)/RawKinectViewer: PACKAGES += MYKINECT MYVRUI MYGLMOTIF MYIMAGES MYGLSUPPORT MYGLWRAPPERS MYGEOMETRY MYMATH MYIO MYTHREADS MYMISC GL X11
 $(EXEDIR)/RawKinectViewer: $(OBJDIR)/PauseTool.o \
                            $(OBJDIR)/MeasurementTool.o \
                            $(OBJDIR)/TiePointTool.o \
@@ -384,7 +384,8 @@ $(EXEDIR)/RawKinectViewer: $(OBJDIR)/PauseTool.o \
                            $(OBJDIR)/PlaneTool.o \
                            $(OBJDIR)/PointPlaneTool.o \
                            $(OBJDIR)/CalibrationCheckTool.o \
-                           $(OBJDIR)/RawKinectViewer.o
+                           $(OBJDIR)/RawKinectViewer.o \
+						   $(OBJDIR)/CalibrationWindow/KinectCalibrationWindow.o
 .PHONY: RawKinectViewer
 RawKinectViewer: $(EXEDIR)/RawKinectViewer
 
