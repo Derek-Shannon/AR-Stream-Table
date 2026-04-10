@@ -26,6 +26,9 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include <ctype.h>
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
+#include <fstream>
+#include <stdexcept>
 #include <Misc/SelfDestructPointer.h>
 #include <Misc/StringPrintf.h>
 #include <Misc/FunctionCalls.h>
@@ -59,6 +62,9 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include "PointPlaneTool.h"
 #include "CalibrationCheckTool.h"
 #include "CalibrationWindow/KinectCalibrationWindow.h"
+
+/* Static path of the BoxLayout calibration file in the project directory */
+const char* RawKinectViewer::boxLayoutPath="/home/streamy/Desktop/AR-Stream-Table/arsandbox/etc/BoxLayout.txt";
 
 /******************************************
 Methods of class RawKinectViewer::DataItem:
@@ -623,6 +629,78 @@ void RawKinectViewer::toggleAverageFrames(void)
 		}
 	}
 
+const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Right"};
+ 
+    void RawKinectViewer::writeBoxLayout(void)
+        {
+        std::ofstream boxFile(boxLayoutPath);
+        if(!boxFile.is_open())
+            return;
+        /* Line 1: plane equation (or placeholder) */
+        if(!planeEquationLine.empty())
+            boxFile<<planeEquationLine<<"\n";
+        else
+            boxFile<<"---\n";
+        /* Lines 2-5: corner points (or placeholders) */
+        for(int i=0;i<4;++i)
+            {
+            if(i<int(cornerPoints.size()))
+                boxFile<<cornerPoints[i]<<"\n";
+            else
+                boxFile<<"---\n";
+            }
+        boxFile<<"\n";
+        }
+ 
+    void RawKinectViewer::logPlaneEquation(const std::string& rawLine)
+        {
+        /* rawLine is e.g. "(-0.0589209, -0.0370793, 0.997574) = -135.677"
+           coming from PlaneTool after stripping "x * ".
+           We replace " = " with ", " to match BoxLayout format. */
+        std::string formatted=rawLine;
+        const std::string needle=" = ";
+        std::string::size_type pos=formatted.find(needle);
+        if(pos!=std::string::npos)
+            formatted.replace(pos,needle.size(),", ");
+ 
+        Threads::Spinlock::Lock lock(outputLogMutex);
+        planeEquationLine=formatted;
+        outputLog.push_back("Plane: "+formatted);
+        writeBoxLayout();
+        }
+ 
+    void RawKinectViewer::logMeasurement(const std::string& paddedPoint,const std::string& compactPoint)
+        {
+        Threads::Spinlock::Lock lock(outputLogMutex);
+        if(int(cornerPoints.size())>=4)
+            return; /* Ignore extra presses beyond 4 corners */
+        int idx=int(cornerPoints.size());
+        cornerPoints.push_back(paddedPoint);
+        cornerPointsDisplay.push_back(compactPoint);
+        outputLog.push_back(std::string(cornerLabels[idx])+": "+compactPoint);
+        writeBoxLayout();
+        }
+ 
+    void RawKinectViewer::resetCornerPoints(void)
+        {
+        Threads::Spinlock::Lock lock(outputLogMutex);
+        cornerPoints.clear();
+        cornerPointsDisplay.clear();
+        outputLog.push_back("--- Corner points reset ---");
+        writeBoxLayout();
+        }
+ 
+    void RawKinectViewer::resetAll(void)
+        {
+        Threads::Spinlock::Lock lock(outputLogMutex);
+        planeEquationLine.clear();
+        cornerPoints.clear();
+        cornerPointsDisplay.clear();
+        outputLog.clear();
+        outputLog.push_back("--- Full reset ---");
+        writeBoxLayout();
+        }
+
 void RawKinectViewer::bindExtractPlanesTool(void)
 	{
 	/* Destroy the existing PlaneTool binding if there is one */
@@ -884,6 +962,19 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
      boundPlaneTool(0),boundMeasure3DTool(0),
      pendingToolBind(NONE)
 	{
+
+	/* Overwrite BoxLayout.txt with blank placeholders so it is never stale from a previous session */
+	std::ofstream boxFile(boxLayoutPath);
+	if(boxFile.is_open())
+		{
+		boxFile<<"---\n";
+		boxFile<<"---\n";
+		boxFile<<"---\n";
+		boxFile<<"---\n";
+		boxFile<<"---\n";
+		boxFile<<"\n";
+		}
+
 	/*********************************************************************
 	Register the custom tool classes with the Vrui tool manager:
 	*********************************************************************/
