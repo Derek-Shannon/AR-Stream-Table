@@ -44,6 +44,9 @@ namespace GLMotif {
 class PopupMenu;
 class PopupWindow;
 }
+namespace Vrui {
+class Tool;
+}
 
 class KinectCalibrationWindow;
 
@@ -130,6 +133,15 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	GLMotif::PopupWindow* averageDepthFrameDialog; // A dialog window indicating that an average depth frame is being captured
 
 	KinectCalibrationWindow* CalibrateKinectControl; // Dedicated raw kinect viewer companion control window
+
+	/* Pointers to programmatically bound calibration tools; null when not yet bound */
+	Vrui::Tool* boundPlaneTool; // The PlaneTool instance bound to 'E' by the control window
+	Vrui::Tool* boundMeasure3DTool; // The MeasurementTool instance bound to 'M' by the control window
+
+	/* Flag set during bindExtractPlanesTool/bindMeasure3DTool so toolCreationCallback
+	   knows which pointer to fill in when the new tool is announced */
+	enum PendingToolBind { NONE, PLANE_TOOL, MEASURE3D_TOOL };
+	PendingToolBind pendingToolBind;
 	
 	/* Private methods: */
 	void mapDepth(const Offset& pixel,float depth,GLubyte* colorPtr) const; // Maps a depth value to a color
@@ -167,6 +179,10 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	
 	/* Methods callable from companion UI windows: */
 	void toggleAverageFrames(void);
+	void bindExtractPlanesTool(void); // Binds PlaneTool to 'E'; destroys any existing binding first
+	void bindMeasure3DTool(void); // Binds MeasurementTool to 'M'; destroys any existing binding first
+	bool isExtractPlanesToolBound(void) const { return boundPlaneTool!=0; }
+	bool isMeasure3DToolBound(void) const { return boundMeasure3DTool!=0; }
 
 	/* Methods from Vrui::Application: */
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);

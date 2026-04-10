@@ -623,6 +623,54 @@ void RawKinectViewer::toggleAverageFrames(void)
 		}
 	}
 
+void RawKinectViewer::bindExtractPlanesTool(void)
+	{
+	/* Destroy the existing PlaneTool binding if there is one */
+	if(boundPlaneTool!=0)
+		{
+		Vrui::getToolManager()->destroyTool(boundPlaneTool,false);
+		boundPlaneTool=0;
+		}
+	
+	/* Signal toolCreationCallback to capture the next created tool
+	   as the bound PlaneTool, then load the binding from the cfg */
+	pendingToolBind=PLANE_TOOL;
+	try
+		{
+		Vrui::getToolManager()->loadToolBinding("PlaneToolBinding");
+		}
+	catch(const std::runtime_error& err)
+		{
+		/* Binding failed (e.g. key already taken by something else);
+		   clear the pending flag and report the error */
+		pendingToolBind=NONE;
+		Vrui::showErrorMessage("Bind Extract Planes Tool",err.what());
+		}
+	}
+
+void RawKinectViewer::bindMeasure3DTool(void)
+	{
+	/* Destroy the existing MeasurementTool binding if there is one */
+	if(boundMeasure3DTool!=0)
+		{
+		Vrui::getToolManager()->destroyTool(boundMeasure3DTool,false);
+		boundMeasure3DTool=0;
+		}
+	
+	/* Signal toolCreationCallback to capture the next created tool
+	   as the bound MeasurementTool, then load the binding from the cfg */
+	pendingToolBind=MEASURE3D_TOOL;
+	try
+		{
+		Vrui::getToolManager()->loadToolBinding("MeasurementToolBinding");
+		}
+	catch(const std::runtime_error& err)
+		{
+		pendingToolBind=NONE;
+		Vrui::showErrorMessage("Bind Measure 3D Positions Tool",err.what());
+		}
+	}
+
 void RawKinectViewer::saveAverageFrameOKCallback(GLMotif::FileSelectionDialog::OKCallbackData* cbData)
 	{
 	try
@@ -832,7 +880,9 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
 	 averageFrameValid(false),showAverageFrame(false),
 	 depthPlaneValid(false),
 	 depthRangeDialog(0),mainMenu(0),averageDepthFrameDialog(0),
-	 CalibrateKinectControl(0)
+	 CalibrateKinectControl(0),
+     boundPlaneTool(0),boundMeasure3DTool(0),
+     pendingToolBind(NONE)
 	{
 	/*********************************************************************
 	Register the custom tool classes with the Vrui tool manager:
@@ -1028,16 +1078,28 @@ RawKinectViewer::~RawKinectViewer(void)
 	}
 
 void RawKinectViewer::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData)
-	{
-	/* Call the base class method: */
-	Vrui::Application::toolCreationCallback(cbData);
-	
-	/* Check if the new tool is a locator tool: */
-	Vrui::LocatorTool* lt=dynamic_cast<Vrui::LocatorTool*>(cbData->tool);
+    {
+    /* Call the base class method: */
+    Vrui::Application::toolCreationCallback(cbData);
+        
+    /* Check if the new tool is a locator tool: */
+    Vrui::LocatorTool* lt=dynamic_cast<Vrui::LocatorTool*>(cbData->tool);
 	if(lt!=0)
 		{
 		/* Register callbacks with the locator tool: */
 		lt->getButtonPressCallbacks().add(this,&RawKinectViewer::locatorButtonPressCallback);
+		}
+	
+	/* If we were waiting for a calibration tool binding, store the pointer now */
+	if(pendingToolBind==PLANE_TOOL)
+		{
+		boundPlaneTool=cbData->tool;
+		pendingToolBind=NONE;
+		}
+	else if(pendingToolBind==MEASURE3D_TOOL)
+		{
+		boundMeasure3DTool=cbData->tool;
+		pendingToolBind=NONE;
 		}
 	}
 

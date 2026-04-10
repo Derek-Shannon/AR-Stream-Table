@@ -60,9 +60,9 @@ KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	colorError=allocColor("#ff6b6b",WhitePixel(display,screen));
 	
 	/* Load fonts */
-	titleFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--40-*-*-*-*-*-*-*");
-	headingFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--30-*-*-*-*-*-*-*");
-	bodyFont=XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--26-*-*-*-*-*-*-*");
+	titleFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--48-*-*-*-*-*-*-*");
+	headingFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--32-*-*-*-*-*-*-*");
+	bodyFont=XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--24-*-*-*-*-*-*-*");
 	if(titleFont==0)
 		titleFont=XLoadQueryFont(display,"9x15bold");
 	if(headingFont==0)
@@ -168,7 +168,7 @@ void KinectCalibrationWindow::setColor(unsigned long color)
 
 void KinectCalibrationWindow::drawButton(const Rect& rect,const char* label,bool hovered,unsigned long baseColor)
 	{
-	/* Choose fill color: active green overrides hover/base for the finish button */
+	/* Hover color: finish button has its own hover, active (green) buttons lighten slightly */
 	unsigned long fillColor;
 	if(hovered)
 		fillColor=(baseColor==colorFinish)?colorFinishHover:colorButtonHover;
@@ -238,8 +238,10 @@ void KinectCalibrationWindow::updateCursor(void)
 
 void KinectCalibrationWindow::draw(void)
 	{
-	/* Read the current averaging state from the viewer so the button color stays in sync */
-	const bool averagingActive = viewer!=0 && viewer->showAverageFrame;
+	/* Read live state from the viewer for button color feedback */
+	const bool averagingActive        = viewer!=0 && viewer->showAverageFrame;
+	const bool extractPlanesActive    = viewer!=0 && viewer->isExtractPlanesToolBound();
+	const bool measure3DActive        = viewer!=0 && viewer->isMeasure3DToolBound();
 
 	/* Background */
 	setColor(colorBackground);
@@ -263,14 +265,16 @@ void KinectCalibrationWindow::draw(void)
 	setColor(colorSubtleText);
 	drawTextLine(70,150,"Quick Help Buttons (hover information icon for more information)");
 	
-	/* Average Frames button — green when active, blue when inactive */
+	/* Three quick-help buttons — green when their tool/state is active, blue otherwise */
 	drawButton(averageFramesButtonRect,"Average Frames",
 		averageFramesButtonRect.contains(hoverX,hoverY),
 		averagingActive?colorButtonActive:colorButton);
 	drawButton(extractPlanesButtonRect,"Set Extract Planes Tool",
-		extractPlanesButtonRect.contains(hoverX,hoverY),colorButton);
+		extractPlanesButtonRect.contains(hoverX,hoverY),
+		extractPlanesActive?colorButtonActive:colorButton);
 	drawButton(measure3DButtonRect,"Set Measure 3D Positions Tool",
-		measure3DButtonRect.contains(hoverX,hoverY),colorButton);
+		measure3DButtonRect.contains(hoverX,hoverY),
+		measure3DActive?colorButtonActive:colorButton);
 	
 	/* Info icons */
 	drawInfoIcon(averageFramesInfoIconRect,averageFramesInfoIconRect.contains(hoverX,hoverY));
@@ -347,6 +351,16 @@ bool KinectCalibrationWindow::processEvents(void)
 					{
 					if(viewer!=0)
 						viewer->toggleAverageFrames();
+					}
+				else if(extractPlanesButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					{
+					if(viewer!=0)
+						viewer->bindExtractPlanesTool();
+					}
+				else if(measure3DButtonRect.contains(event.xbutton.x,event.xbutton.y))
+					{
+					if(viewer!=0)
+						viewer->bindMeasure3DTool();
 					}
 				else if(finishCalibrationButtonRect.contains(event.xbutton.x,event.xbutton.y))
 					{
