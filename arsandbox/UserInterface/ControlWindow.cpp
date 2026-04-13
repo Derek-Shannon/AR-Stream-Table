@@ -58,12 +58,19 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 		const Rect inputRect=scaledRect(exportDialogInputRect);
 		return cancelRect.contains(x,y)||okRect.contains(x,y)||inputRect.contains(x,y);
 		}
-	return scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||scaledRect(exportButtonRect).contains(x,y)||
-	       scaledRect(drainButtonRect).contains(x,y)||
-	       scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
-	       scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y)||
-	       scaledRect(testingCheckboxRect).contains(x,y)||scaledRect(testingSliderRect).contains(x,y);
-		   scaledRect(maskCheckboxRect).contains(x,y);
+	
+	bool baseInteractive = scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||
+						scaledRect(exportButtonRect).contains(x,y)||scaledRect(drainButtonRect).contains(x,y)||
+						scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
+						scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y);
+	if (debugEnabled) 
+        {
+        return baseInteractive || scaledRect(testingCheckboxRect).contains(x,y) || 
+               scaledRect(testingSliderRect).contains(x,y) || 
+               scaledRect(maskCheckboxRect).contains(x,y);
+        }
+
+    return baseInteractive;
 	}
 
 unsigned long ControlWindow::resolveButtonFill(bool active,bool hovered) const
@@ -303,58 +310,61 @@ void ControlWindow::draw(void)
         sensorAngleValue = previousSensorAngleValue;
     }
 	appliedAngleValue=testingEnabled?testingTiltValue:int(sensorAngleValue* 10.0f) / 10.0f;
-
-	drawCenteredText(testingLabelRectScaled,testingLabelRectScaled.y+30,"Just for SEECS testing",section,colorSubtleText);
-	setColor(colorBorder);
-	XDrawRectangle(display,window,graphicsContext,testingCheckboxRectScaled.x,testingCheckboxRectScaled.y,testingCheckboxRectScaled.w,testingCheckboxRectScaled.h);
-	if(testingEnabled)
-		{
-		setColor(colorSuccess);
-		XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+3,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h/2,
-		          testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4);
-		XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4,
-		          testingCheckboxRectScaled.x+testingCheckboxRectScaled.w-3,testingCheckboxRectScaled.y+3);
-		}
-	setColor(colorText);
-	setFont(section);
-	XDrawString(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w+12,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-6,"Enable for testing just for SEECS",33);
-	const int clampedTilt=testingTiltValue<testingTiltMin?testingTiltMin:(testingTiltValue>testingTiltMax?testingTiltMax:testingTiltValue);
-	setColor(testingEnabled?colorButtonBorder:colorBorder);
-	XDrawRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-3,testingSliderRectScaled.w,6);
-	setColor(testingEnabled?colorAccent:colorBorder);
-	const int sliderFillWidth=((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
-	XFillRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-2,sliderFillWidth,4);
-	const int sliderY=testingSliderRectScaled.y+testingSliderRectScaled.h/2;
-	const int handleX=testingSliderRectScaled.x+((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
-	setColor(testingEnabled?colorText:colorSubtleText);
-	XFillArc(display,window,graphicsContext,handleX-8,sliderY-8,16,16,0,360*64);
-	char sliderBuffer[80];
-	snprintf(sliderBuffer,sizeof(sliderBuffer),"Mock Tilt: %d deg",testingTiltValue);
-	setColor(testingEnabled?colorText:colorSubtleText);
-	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y-8,sliderBuffer,int(strlen(sliderBuffer)));
-	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"0 deg",5);
-	XDrawString(display,window,graphicsContext,testingSliderRectScaled.x+testingSliderRectScaled.w-36,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"22 deg",6);
-	// --- START MASK CHECKBOX DRAWING ---
-    setColor(colorBorder);
-    XDrawRectangle(display,window,graphicsContext,maskCheckboxRectScaled.x,maskCheckboxRectScaled.y,maskCheckboxRectScaled.w,maskCheckboxRectScaled.h);
-    
-    // Draw the checkmark if enabled
-    if(maskEnabled)
+	if (debugEnabled) 
         {
-        setColor(colorSuccess);
-        XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+3,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h/2,
-                  maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4);
-        XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,
-                  maskCheckboxRectScaled.x+maskCheckboxRectScaled.w-3,maskCheckboxRectScaled.y+3);
-        }
-        
-    // Draw the text label next to the box
-    setColor(colorText);
-    setFont(section);
-    const char* maskLabel = "Enable Projector Masking";
-    XDrawString(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w+12,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,maskLabel,int(strlen(maskLabel)));
-    // --- END MASK CHECKBOX DRAWING ---
+			drawCenteredText(testingLabelRectScaled,testingLabelRectScaled.y+30,"Just for SEECS testing",section,colorSubtleText);
+			setColor(colorBorder);
+			XDrawRectangle(display,window,graphicsContext,testingCheckboxRectScaled.x,testingCheckboxRectScaled.y,testingCheckboxRectScaled.w,testingCheckboxRectScaled.h);
+			if(testingEnabled)
+				{
+				setColor(colorSuccess);
+				XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+3,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h/2,
+						testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4);
+				XDrawLine(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w/2,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-4,
+						testingCheckboxRectScaled.x+testingCheckboxRectScaled.w-3,testingCheckboxRectScaled.y+3);
+				}
+			setColor(colorText);
+			setFont(section);
+			XDrawString(display,window,graphicsContext,testingCheckboxRectScaled.x+testingCheckboxRectScaled.w+12,testingCheckboxRectScaled.y+testingCheckboxRectScaled.h-6,"Enable for testing just for SEECS",33);
+			const int clampedTilt=testingTiltValue<testingTiltMin?testingTiltMin:(testingTiltValue>testingTiltMax?testingTiltMax:testingTiltValue);
+			setColor(testingEnabled?colorButtonBorder:colorBorder);
+			XDrawRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-3,testingSliderRectScaled.w,6);
+			setColor(testingEnabled?colorAccent:colorBorder);
+			const int sliderFillWidth=((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
+			XFillRectangle(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h/2-2,sliderFillWidth,4);
+			const int sliderY=testingSliderRectScaled.y+testingSliderRectScaled.h/2;
+			const int handleX=testingSliderRectScaled.x+((clampedTilt-testingTiltMin)*testingSliderRectScaled.w)/(testingTiltMax-testingTiltMin);
+			setColor(testingEnabled?colorText:colorSubtleText);
+			XFillArc(display,window,graphicsContext,handleX-8,sliderY-8,16,16,0,360*64);
+			char sliderBuffer[80];
+			snprintf(sliderBuffer,sizeof(sliderBuffer),"Mock Tilt: %d deg",testingTiltValue);
+			setColor(testingEnabled?colorText:colorSubtleText);
+			XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y-8,sliderBuffer,int(strlen(sliderBuffer)));
+			XDrawString(display,window,graphicsContext,testingSliderRectScaled.x,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"0 deg",5);
+			XDrawString(display,window,graphicsContext,testingSliderRectScaled.x+testingSliderRectScaled.w-36,testingSliderRectScaled.y+testingSliderRectScaled.h+16,"22 deg",6);
+			
+			// --- START MASK CHECKBOX DRAWING ---
+			setColor(colorBorder);
+			XDrawRectangle(display,window,graphicsContext,maskCheckboxRectScaled.x,maskCheckboxRectScaled.y,maskCheckboxRectScaled.w,maskCheckboxRectScaled.h);
+			if(maskEnabled)// Draw the checkmark if enabled
+				{
+				setColor(colorSuccess);
+				XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+3,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h/2,
+						maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4);
+				XDrawLine(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w/2,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,
+						maskCheckboxRectScaled.x+maskCheckboxRectScaled.w-3,maskCheckboxRectScaled.y+3);
+				}
+			// Draw the text label next to the box
+			setColor(colorText);
+			setFont(section);
+			const char* maskLabel = "Enable Projector Masking";
+			XDrawString(display,window,graphicsContext,maskCheckboxRectScaled.x+maskCheckboxRectScaled.w+12,maskCheckboxRectScaled.y+maskCheckboxRectScaled.h-4,maskLabel,int(strlen(maskLabel)));
+			// --- END MASK CHECKBOX DRAWING ---
 
+		}
+
+	
+	
 	/* Split layout in two panes */
 	setColor(WhitePixel(display,DefaultScreen(display)));
 	XDrawLine(display,window,graphicsContext,width/2,62,width/2,height-16);
@@ -417,7 +427,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true),
+	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true), debugEnabled(false),
 	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
@@ -517,6 +527,10 @@ ControlWindow::~ControlWindow(void)
 			XDestroyWindow(display,window);
 		XCloseDisplay(display);
 		}
+	}
+void ControlWindow::setDebugMode(bool newDebugEnabled)
+	{
+		debugEnabled = newDebugEnabled;
 	}
 
 bool ControlWindow::getFreezeState(void) const

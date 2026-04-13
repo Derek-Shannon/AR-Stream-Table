@@ -741,6 +741,8 @@ void printUsage(void)
 	std::cout<<"     Default: 2.0"<<std::endl;
 	std::cout<<"  -cp <control pipe name>"<<std::endl;
 	std::cout<<"     Sets the name of a named POSIX pipe from which to read control commands"<<std::endl;
+	std::cout<<"  -debug"<<std::endl;
+    std::cout<<"     Enables debug mode in the control window"<<std::endl;
 	std::cout<<std::endl;
 	std::cout<<"  Units: All input parameters specified in cm apply to physical space, meaning"<<std::endl;
 	std::cout<<"    they are unaffected by the overall sand box scale factor."<<std::endl;
@@ -805,6 +807,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	float demDistScale=cfg.retrieveValue<float>("./demDistScale",1.0f);
 	std::string controlPipeName=cfg.retrieveString("./controlPipeName","");
 	customMaskScale = cfg.retrieveValue<double>("./Masking/maskScaleOffset", 1.1);
+	bool enableDebug = false;
 	
 	/* Process command line parameters: */
 	bool printHelp=false;
@@ -1027,6 +1030,10 @@ Sandbox::Sandbox(int& argc,char**& argv)
 				++i;
 				controlPipeName=argv[i];
 				}
+			else if(strcasecmp(argv[i]+1,"debug")==0)
+                {
+                enableDebug=true;
+                }
 			else
 				std::cerr<<"Ignoring unrecognized command line switch "<<argv[i]<<std::endl;
 			}
@@ -1303,6 +1310,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	if(waterTable!=0)
 		waterControlDialog=createWaterControlDialog();
 	controlWindow=createControlWindow();
+	controlWindow->setDebugMode(enableDebug);
 	
 	/* Initialize the custom tool classes: */
 	GlobalWaterTool::initClass(*Vrui::getToolManager());
