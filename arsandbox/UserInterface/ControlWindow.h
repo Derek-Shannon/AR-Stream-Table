@@ -58,6 +58,7 @@ class ControlWindow
 	bool exportInProgress;
 	bool isMaximized;
 	bool removeWaterOn;
+	bool debugEnabled;
 	double contourLineInterval;
 	bool hoverInteractive;
 	bool exportDialogVisible;
@@ -150,6 +151,7 @@ class ControlWindow
 	float getAppliedTiltValue(void) const;
 	double getWaterFlowRate(void) const;
 	void setFreezeState(bool state);
+	void setDebugMode(bool newDebugEnabled);
 	void setWaterFlowRate(double newWaterFlowRate);
     void setCurrentFps(int newCurrentFps);
 	bool consumeExportRequest(std::string& requestedName);
