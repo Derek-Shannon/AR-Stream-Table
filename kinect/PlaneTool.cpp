@@ -23,6 +23,7 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include "PlaneTool.h"
 
 #include <iostream>
+#include <sstream>
 #include <Math/Math.h>
 #include <Geometry/Point.h>
 #include <Geometry/Vector.h>
@@ -372,7 +373,14 @@ void PlaneTool::buttonCallback(int buttonSlotIndex,Vrui::InputDevice::ButtonCall
 			std::cout<<"Camera-space approximation RMS: "<<Math::sqrt(rms2/double(numPoints))<<std::endl;
 			
 			/* Print the plane equation in camera space: */
-			std::cout<<"Camera-space plane equation: x * "<<cNormal<<" = "<<cCentroid*cNormal<<std::endl;
+        	std::cout<<"Camera-space plane equation: x * "<<cNormal<<" = "<<cCentroid*cNormal<<std::endl;
+			/* Also push the camera-space plane equation to the control window and BoxLayout file.
+           We pass just the part after "x * " so logPlaneEquation only has to replace " = " */
+			{
+			std::ostringstream oss;
+			oss<<cNormal<<" = "<<cCentroid*cNormal;
+			application->logPlaneEquation(oss.str());
+			}
 			}
 		else
 			Vrui::showErrorMessage("PlaneTool","Could not extract plane equation");

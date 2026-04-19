@@ -4,6 +4,9 @@
 #include <X11/Xlib.h>
 #include <string>
 
+/* Forward declaration so we can hold a pointer without a circular include */
+class RawKinectViewer;
+
 class KinectCalibrationWindow
 	{
 	private:
@@ -30,16 +33,28 @@ class KinectCalibrationWindow
 	Cursor handCursor;
 	bool closeRequested;
 	
-	/* Button rects */
+	/* Pointer back to the owning application for triggering actions */
+	RawKinectViewer* viewer;
+	
+	/* Quick-help button rects */
 	Rect averageFramesButtonRect;
 	Rect extractPlanesButtonRect;
 	Rect measure3DButtonRect;
-	Rect finishCalibrationButtonRect;
 	
 	/* Info icon rects */
 	Rect averageFramesInfoIconRect;
 	Rect extractPlanesInfoIconRect;
 	Rect measure3DInfoIconRect;
+
+	/* Output panel rect (right side, below buttons, above finish button) */
+	Rect outputPanelRect;
+
+	/* Reset buttons — sit below the output panel */
+	Rect resetCornersButtonRect;
+	Rect resetAllButtonRect;
+
+	/* Finish button */
+	Rect finishCalibrationButtonRect;
 	
 	int hoverX;
 	int hoverY;
@@ -52,8 +67,11 @@ class KinectCalibrationWindow
 	unsigned long colorSubtleText;
 	unsigned long colorButton;
 	unsigned long colorButtonHover;
+	unsigned long colorButtonActive;
 	unsigned long colorFinish;
 	unsigned long colorFinishHover;
+	unsigned long colorReset;
+	unsigned long colorResetHover;
 	unsigned long colorAccent;
 	unsigned long colorSuccess;
 	unsigned long colorWarning;
@@ -62,6 +80,7 @@ class KinectCalibrationWindow
 	XFontStruct* titleFont;
 	XFontStruct* headingFont;
 	XFontStruct* bodyFont;
+	XFontStruct* outputFont; // Slightly smaller font for the output panel lines
 	
 	unsigned long allocColor(const char* name,unsigned long fallback) const;
 	void setColor(unsigned long color);
@@ -69,11 +88,13 @@ class KinectCalibrationWindow
 	void drawTextLine(int x,int y,const std::string& text);
 	void drawInfoIcon(const Rect& rect,bool hovered);
 	void drawTooltip(const Rect& anchor,const char* line1,const char* line2,const char* line3);
+	void drawOutputPanel(void);
 	void updateCursor(void);
 	void draw(void);
 	
 	public:
-	KinectCalibrationWindow(void);
+	/* Constructor takes a pointer to the owning RawKinectViewer */
+	KinectCalibrationWindow(RawKinectViewer* viewer);
 	~KinectCalibrationWindow(void);
 	
 	bool processEvents(void);

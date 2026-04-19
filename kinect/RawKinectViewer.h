@@ -24,6 +24,8 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #ifndef RAWKINECTVIEWER_INCLUDED
 #define RAWKINECTVIEWER_INCLUDED
 
+#include <string>
+#include <vector>
 #include <Misc/FunctionCalls.h>
 #include <Threads/Spinlock.h>
 #include <Threads/TripleBuffer.h>
@@ -43,6 +45,9 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 namespace GLMotif {
 class PopupMenu;
 class PopupWindow;
+}
+namespace Vrui {
+class Tool;
 }
 
 class KinectCalibrationWindow;
@@ -130,6 +135,28 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	GLMotif::PopupWindow* averageDepthFrameDialog; // A dialog window indicating that an average depth frame is being captured
 
 	KinectCalibrationWindow* CalibrateKinectControl; // Dedicated raw kinect viewer companion control window
+
+	/* Pointers to programmatically bound calibration tools; null when not yet bound */
+	Vrui::Tool* boundPlaneTool; // The PlaneTool instance bound to 'E' by the control window
+	Vrui::Tool* boundMeasure3DTool; // The MeasurementTool instance bound to 'M' by the control window
+
+	/* Flag set during bindExtractPlanesTool/bindMeasure3DTool so toolCreationCallback
+	   knows which pointer to fill in when the new tool is announced */
+	enum PendingToolBind { NONE, PLANE_TOOL, MEASURE3D_TOOL };
+	PendingToolBind pendingToolBind;
+
+	/* Calibration output log — shared between tools and the control window */
+	Threads::Spinlock outputLogMutex; // Protects planeEquationLine, cornerPoints, and outputLog
+	std::string planeEquationLine; // Most recent formatted plane equation (empty if not yet captured)
+	std::vector<std::string> cornerPoints; // Up to 4 corner point lines in capture order (padded, for file)
+	std::vector<std::string> cornerPointsDisplay; // Same points but compact (no padding, for UI display)
+	std::vector<std::string> outputLog; // All lines shown in the control window output panel
+
+	/* Path to the BoxLayout file written by this calibration session */
+	static const char* boxLayoutPath;
+
+	/* Private helpers: */
+	void writeBoxLayout(void); // Rewrites BoxLayout.txt from current planeEquationLine + cornerPoints
 	
 	/* Private methods: */
 	void mapDepth(const Offset& pixel,float depth,GLubyte* colorPtr) const; // Maps a depth value to a color
@@ -165,6 +192,36 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	RawKinectViewer(int& argc,char**& argv);
 	virtual ~RawKinectViewer(void);
 	
+	/* Methods callable from companion UI windows: */
+	void toggleAverageFrames(void);
+	void bindExtractPlanesTool(void);
+	void bindMeasure3DTool(void);
+	bool isExtractPlanesToolBound(void) const { return boundPlaneTool!=0; }
+	bool isMeasure3DToolBound(void) const { return boundMeasure3DTool!=0; }
+
+	/* Calibration data logging — called by PlaneTool and MeasurementTool */
+	void logPlaneEquation(const std::string& rawCameraSpaceLine); // Formats and stores the plane equation
+	void logMeasurement(const std::string& paddedPoint,const std::string& compactPoint); // Stores a corner point (padded for file, compact for display)
+	void resetCornerPoints(void); // Clears corner points only; keeps plane equation
+	void resetAll(void); // Clears everything and blanks the file
+
+	/* Read accessors for the control window */
+	std::vector<std::string> getOutputLog(void) const
+		{
+		Threads::Spinlock::Lock lock(const_cast<Threads::Spinlock&>(outputLogMutex));
+		return outputLog;
+		}
+	int getCornerCount(void) const
+		{
+		Threads::Spinlock::Lock lock(const_cast<Threads::Spinlock&>(outputLogMutex));
+		return int(cornerPoints.size());
+		}
+	bool hasPlaneEquation(void) const
+		{
+		Threads::Spinlock::Lock lock(const_cast<Threads::Spinlock&>(outputLogMutex));
+		return !planeEquationLine.empty();
+		}
+
 	/* Methods from Vrui::Application: */
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void frame(void);

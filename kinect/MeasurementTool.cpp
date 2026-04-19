@@ -26,6 +26,7 @@ Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <Geometry/OutputOperators.h>
 #include <Vrui/ToolManager.h>
 
@@ -82,6 +83,16 @@ void MeasurementTool::buttonCallback(int buttonSlotIndex,Vrui::InputDevice::Butt
 			/* Transform the image point to world space and print it: */
 			RawKinectViewer::CPoint worldPoint=application->intrinsicParameters.depthProjection.transform(depthImagePoint);
 			std::cout<<std::setw(20)<<worldPoint<<std::endl;
+        
+			/* Build the padded string (matches BoxLayout.txt file format) */
+			std::ostringstream paddedOss;
+			paddedOss<<std::setw(20)<<worldPoint;
+			
+			/* Build a compact string for the UI display panel (no padding) */
+			std::ostringstream compactOss;
+			compactOss<<worldPoint;
+			
+			application->logMeasurement(paddedOss.str(),compactOss.str());
 			}
 		}
 	}
