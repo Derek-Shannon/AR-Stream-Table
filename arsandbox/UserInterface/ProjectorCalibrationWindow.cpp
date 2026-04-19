@@ -271,7 +271,7 @@ void ProjectorCalibrationWindow::draw(void)
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
-	const char* exitLabel="Exit";
+	const char* exitLabel="Back";
 	const int exitLabelWidth=headingFont!=0?XTextWidth(headingFont,exitLabel,int(strlen(exitLabel))):0;
 	const int exitBaseline=headingFont!=0?exitButtonRect.y+(exitButtonRect.h+headingFont->ascent-headingFont->descent)/2:exitButtonRect.y+42;
 	drawTextLine(exitButtonRect.x+(exitButtonRect.w-exitLabelWidth)/2,exitBaseline,exitLabel);
@@ -477,6 +477,7 @@ bool ProjectorCalibrationWindow::processEvents(void)
 				else if(tiePointCount>=minTiePointsRequired&&runStreamTableButtonRect.contains(event.xbutton.x,event.xbutton.y))
 					{
 					finishCalibrationRequested=true;
+					closeRequested=true;
 					}
 				draw();
 				break;

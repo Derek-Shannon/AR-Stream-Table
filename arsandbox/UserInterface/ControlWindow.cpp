@@ -288,7 +288,7 @@ void ControlWindow::draw(void)
 
 	setColor(colorText);
 	setFont(title);
-	XDrawString(display,window,graphicsContext,10,38,"Control Window V4",17);
+	XDrawString(display,window,graphicsContext,10,38,"Control Window",14);
 
 	setFont(title);
 	setColor(colorSubtleText);
