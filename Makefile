@@ -6,7 +6,7 @@ STARTSCREEN_DIR = StartScreen
 
 .PHONY: all clean vrui kinect sandbox
 
-all: vrui kinect sandbox start
+all: vrui kinect sandbox start icon
 	@echo "-------------------------------------------------------"
 	@echo "Build complete! Your files are in their local folders:"
 	@echo "Kinect tools:  ./$(KINECT_DIR)/bin"
@@ -35,11 +35,30 @@ sandbox: kinect
 	$(MAKE) -C $(SANDBOX_DIR) config
 	$(MAKE) -j$(nproc) -C $(SANDBOX_DIR)
 
-start:
+start: sandbox
 	@echo "--- Building StartScreen ---"
 	g++ $(STARTSCREEN_DIR)/StartScreen.cpp -o $(STARTSCREEN_DIR)/StartSARndbox \
 		-lX11
-	@echo "--- StartScreen built ---"
+
+icon:
+	@echo "Creating desktop icon for StreamySandbox..."
+	@# Get the real user's home directory even if running with sudo
+	$(eval REAL_HOME := $(shell bash -c 'eval echo ~$${SUDO_USER:-$$USER}'))
+	
+	@echo "[Desktop Entry]" > $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Version=1.0" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Type=Application" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Name=AR Sandbox" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Comment=Launch AR Sandbox tool" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Exec=$(shell pwd)/$(STARTSCREEN_DIR)/StartSARndbox" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Icon=$(shell pwd)/$(SANDBOX_DIR)/share/SARndbox.png" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Terminal=true" >> $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	
+	@# Make the shortcut executable
+	@chmod +x $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@# Fix permissions so the file isn't locked by root
+	@chown $${SUDO_USER:-$$USER} $(REAL_HOME)/Desktop/StreamySandbox.desktop
+	@echo "Desktop icon created successfully!"
 
 clean:
 	$(MAKE) -C $(KINECT_DIR) clean
