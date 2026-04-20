@@ -204,6 +204,7 @@ class RawKinectViewer:public Vrui::Application,public GLObject
 	void logMeasurement(const std::string& paddedPoint,const std::string& compactPoint); // Stores a corner point (padded for file, compact for display)
 	void resetCornerPoints(void); // Clears corner points only; keeps plane equation
 	void resetAll(void); // Clears everything and blanks the file
+	void writeAndFinish(void); // Writes BoxLayout.txt then shuts down; only call when all 5 lines are ready
 
 	/* Read accessors for the control window */
 	std::vector<std::string> getOutputLog(void) const

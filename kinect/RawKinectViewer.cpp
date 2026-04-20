@@ -666,7 +666,6 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
         Threads::Spinlock::Lock lock(outputLogMutex);
         planeEquationLine=formatted;
         outputLog.push_back("Plane: "+formatted);
-        writeBoxLayout();
         }
  
     void RawKinectViewer::logMeasurement(const std::string& paddedPoint,const std::string& compactPoint)
@@ -678,7 +677,6 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
         cornerPoints.push_back(paddedPoint);
         cornerPointsDisplay.push_back(compactPoint);
         outputLog.push_back(std::string(cornerLabels[idx])+": "+compactPoint);
-        writeBoxLayout();
         }
  
     void RawKinectViewer::resetCornerPoints(void)
@@ -687,7 +685,6 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
         cornerPoints.clear();
         cornerPointsDisplay.clear();
         outputLog.push_back("--- Corner points reset ---");
-        writeBoxLayout();
         }
  
     void RawKinectViewer::resetAll(void)
@@ -698,8 +695,16 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
         cornerPointsDisplay.clear();
         outputLog.clear();
         outputLog.push_back("--- Full reset ---");
-        writeBoxLayout();
         }
+
+	void RawKinectViewer::writeAndFinish(void)
+		{
+		/* Write BoxLayout.txt - only called when all 5 lines are confirmed ready */
+		writeBoxLayout();
+		
+		/* Shut down the application */
+		Vrui::shutdown();
+		}
 
 void RawKinectViewer::bindExtractPlanesTool(void)
 	{
@@ -962,18 +967,6 @@ RawKinectViewer::RawKinectViewer(int& argc,char**& argv)
      boundPlaneTool(0),boundMeasure3DTool(0),
      pendingToolBind(NONE)
 	{
-
-	/* Overwrite BoxLayout.txt with blank placeholders so it is never stale from a previous session */
-	std::ofstream boxFile(boxLayoutPath);
-	if(boxFile.is_open())
-		{
-		boxFile<<"---\n";
-		boxFile<<"---\n";
-		boxFile<<"---\n";
-		boxFile<<"---\n";
-		boxFile<<"---\n";
-		boxFile<<"\n";
-		}
 
 	/*********************************************************************
 	Register the custom tool classes with the Vrui tool manager:

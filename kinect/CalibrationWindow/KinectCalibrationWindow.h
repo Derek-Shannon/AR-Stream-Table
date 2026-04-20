@@ -46,7 +46,7 @@ class KinectCalibrationWindow
 	Rect extractPlanesInfoIconRect;
 	Rect measure3DInfoIconRect;
 
-	/* Output panel rect (right side, below buttons, above finish button) */
+	/* Output panel rect (right side, below buttons, above reset buttons) */
 	Rect outputPanelRect;
 
 	/* Reset buttons — sit below the output panel */
@@ -68,8 +68,8 @@ class KinectCalibrationWindow
 	unsigned long colorButton;
 	unsigned long colorButtonHover;
 	unsigned long colorButtonActive;
-	unsigned long colorFinish;
-	unsigned long colorFinishHover;
+	unsigned long colorActiveHover;
+	unsigned long colorButtonDisabled; // Greyed-out finish button when calibration is incomplete
 	unsigned long colorReset;
 	unsigned long colorResetHover;
 	unsigned long colorAccent;
@@ -82,6 +82,9 @@ class KinectCalibrationWindow
 	XFontStruct* bodyFont;
 	XFontStruct* outputFont; // Slightly smaller font for the output panel lines
 	
+	/* Helper: returns true when plane equation + all 4 corners are captured */
+	bool calibrationComplete(void) const;
+
 	unsigned long allocColor(const char* name,unsigned long fallback) const;
 	void setColor(unsigned long color);
 	void drawButton(const Rect& rect,const char* label,bool hovered,unsigned long baseColor);

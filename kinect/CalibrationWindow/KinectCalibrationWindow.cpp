@@ -46,39 +46,34 @@ KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	XDefineCursor(display,window,arrowCursor);
 	
 	/* Allocate colors */
-	colorBackground=allocColor("#0b0f19",BlackPixel(display,screen));
-	colorPanel=allocColor("#121a2b",WhitePixel(display,screen));
-	colorBorder=allocColor("#2d3f64",WhitePixel(display,screen));
-	colorText=allocColor("#ecf2ff",WhitePixel(display,screen));
-	colorSubtleText=allocColor("#9db3d9",WhitePixel(display,screen));
-	colorButton=allocColor("#274a88",WhitePixel(display,screen));
-	colorButtonHover=allocColor("#3262b4",WhitePixel(display,screen));
-	colorButtonActive=allocColor("#1f8f5f",WhitePixel(display,screen));
-	colorFinish=allocColor("#b02020",WhitePixel(display,screen));
-	colorFinishHover=allocColor("#d43030",WhitePixel(display,screen));
-	colorReset=allocColor("#7a4a00",WhitePixel(display,screen));
-	colorResetHover=allocColor("#b06800",WhitePixel(display,screen));
-	colorAccent=allocColor("#4cc9f0",WhitePixel(display,screen));
-	colorSuccess=allocColor("#4ad295",WhitePixel(display,screen));
-	colorWarning=allocColor("#ffcf5a",WhitePixel(display,screen));
-	colorError=allocColor("#ff6b6b",WhitePixel(display,screen));
+	colorBackground   =allocColor("#0b0f19",BlackPixel(display,screen));
+	colorPanel        =allocColor("#121a2b",WhitePixel(display,screen));
+	colorBorder       =allocColor("#2d3f64",WhitePixel(display,screen));
+	colorText         =allocColor("#ecf2ff",WhitePixel(display,screen));
+	colorSubtleText   =allocColor("#9db3d9",WhitePixel(display,screen));
+	colorButton       =allocColor("#274a88",WhitePixel(display,screen));
+	colorButtonHover  =allocColor("#3262b4",WhitePixel(display,screen));
+	colorButtonActive =allocColor("#1f8f5f",WhitePixel(display,screen));
+	colorActiveHover  =allocColor("#35b980",WhitePixel(display,screen));
+	colorButtonDisabled=allocColor("#3a3a4a",WhitePixel(display,screen)); // dark grey — finish button when incomplete
+	colorReset        =allocColor("#7a4a00",WhitePixel(display,screen));
+	colorResetHover   =allocColor("#b06800",WhitePixel(display,screen));
+	colorAccent       =allocColor("#4cc9f0",WhitePixel(display,screen));
+	colorSuccess      =allocColor("#4ad295",WhitePixel(display,screen));
+	colorWarning      =allocColor("#ffcf5a",WhitePixel(display,screen));
+	colorError        =allocColor("#ff6b6b",WhitePixel(display,screen));
 	
 	/* Load fonts */
-	titleFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--48-*-*-*-*-*-*-*");
+	titleFont =XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--48-*-*-*-*-*-*-*");
 	headingFont=XLoadQueryFont(display,"-misc-dejavu sans-bold-r-normal--32-*-*-*-*-*-*-*");
-	bodyFont=XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--24-*-*-*-*-*-*-*");
+	bodyFont  =XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--24-*-*-*-*-*-*-*");
 	outputFont=XLoadQueryFont(display,"-misc-dejavu sans-medium-r-normal--20-*-*-*-*-*-*-*");
-	if(titleFont==0)
-		titleFont=XLoadQueryFont(display,"9x15bold");
-	if(headingFont==0)
-		headingFont=XLoadQueryFont(display,"10x20");
-	if(bodyFont==0)
-		bodyFont=XLoadQueryFont(display,"9x15");
-	if(outputFont==0)
-		outputFont=XLoadQueryFont(display,"9x15");
+	if(titleFont==0)  titleFont =XLoadQueryFont(display,"9x15bold");
+	if(headingFont==0)headingFont=XLoadQueryFont(display,"10x20");
+	if(bodyFont==0)   bodyFont  =XLoadQueryFont(display,"9x15");
+	if(outputFont==0) outputFont=XLoadQueryFont(display,"9x15");
 	
-	/* --- Button layout ---
-	   Three equal quick-help buttons across the top */
+	/* --- Button layout --- */
 	const int btnY=170;
 	const int btnH=110;
 	const int btnW=560;
@@ -100,7 +95,7 @@ KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	measure3DButtonRect.w=btnW;
 	measure3DButtonRect.h=btnH;
 	
-	/* Info icons — top-right corner of each button */
+	/* Info icons */
 	const int iconSize=28;
 	const int iconMargin=10;
 	averageFramesInfoIconRect.x=averageFramesButtonRect.x+averageFramesButtonRect.w-iconSize-iconMargin;
@@ -118,25 +113,23 @@ KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	measure3DInfoIconRect.w=iconSize;
 	measure3DInfoIconRect.h=iconSize;
 	
-	/* --- Output panel ---
-	   Right side: aligned with left edge of measure3D button,
-	   from just below the buttons row to just above the reset buttons */
-	const int panelTop=btnY+btnH+20;
-	const int finishH=90;
+	/* --- Layout constants shared by output panel, reset buttons, finish button --- */
+	const int panelTop=btnY+btnH+35;
+	const int finishH=60;
 	const int resetH=60;
 	const int resetGap=10;
 	const int bottomMargin=50;
-	/* Bottom of reset buttons row sits at windowHeight-40-bottomMargin */
 	const int resetBottom=windowHeight-40-bottomMargin;
 	const int resetTop=resetBottom-resetH;
 	const int panelBottom=resetTop-resetGap;
 
+	/* Output panel — right side, aligned with left edge of measure3D button */
 	outputPanelRect.x=measure3DButtonRect.x;
 	outputPanelRect.y=panelTop;
 	outputPanelRect.w=windowWidth-40-outputPanelRect.x-70;
 	outputPanelRect.h=panelBottom-panelTop;
 
-	/* --- Reset buttons --- below the output panel, side by side */
+	/* Reset buttons below output panel */
 	const int resetBtnW=(outputPanelRect.w-resetGap)/2;
 	resetCornersButtonRect.x=outputPanelRect.x;
 	resetCornersButtonRect.y=resetTop;
@@ -148,8 +141,8 @@ KinectCalibrationWindow::KinectCalibrationWindow(RawKinectViewer* viewer)
 	resetAllButtonRect.w=resetBtnW;
 	resetAllButtonRect.h=resetH;
 
-	/* --- Finish button --- bottom right */
-	finishCalibrationButtonRect.w=400;
+	/* Finish button — bottom right */
+	finishCalibrationButtonRect.w=300;
 	finishCalibrationButtonRect.h=finishH;
 	finishCalibrationButtonRect.x=70;
 	finishCalibrationButtonRect.y=windowHeight-40-finishCalibrationButtonRect.h-bottomMargin;
@@ -171,30 +164,28 @@ KinectCalibrationWindow::~KinectCalibrationWindow(void)
 	{
 	if(display!=0)
 		{
-		if(arrowCursor!=0)
-			XFreeCursor(display,arrowCursor);
-		if(handCursor!=0)
-			XFreeCursor(display,handCursor);
-		if(graphicsContext!=0)
-			XFreeGC(display,graphicsContext);
-		if(titleFont!=0)
-			XFreeFont(display,titleFont);
-		if(headingFont!=0)
-			XFreeFont(display,headingFont);
-		if(bodyFont!=0)
-			XFreeFont(display,bodyFont);
-		if(outputFont!=0)
-			XFreeFont(display,outputFont);
-		if(window!=0)
-			XDestroyWindow(display,window);
+		if(arrowCursor!=0)   XFreeCursor(display,arrowCursor);
+		if(handCursor!=0)    XFreeCursor(display,handCursor);
+		if(graphicsContext!=0)XFreeGC(display,graphicsContext);
+		if(titleFont!=0)     XFreeFont(display,titleFont);
+		if(headingFont!=0)   XFreeFont(display,headingFont);
+		if(bodyFont!=0)      XFreeFont(display,bodyFont);
+		if(outputFont!=0)    XFreeFont(display,outputFont);
+		if(window!=0)        XDestroyWindow(display,window);
 		XCloseDisplay(display);
 		}
 	}
 
+bool KinectCalibrationWindow::calibrationComplete(void) const
+	{
+	return viewer!=0
+		&& viewer->hasPlaneEquation()
+		&& viewer->getCornerCount()==4;
+	}
+
 unsigned long KinectCalibrationWindow::allocColor(const char* name,unsigned long fallback) const
 	{
-	XColor color;
-	XColor exact;
+	XColor color,exact;
 	Colormap colormap=DefaultColormap(display,DefaultScreen(display));
 	if(XAllocNamedColor(display,colormap,name,&color,&exact)!=0)
 		return color.pixel;
@@ -208,23 +199,26 @@ void KinectCalibrationWindow::setColor(unsigned long color)
 
 void KinectCalibrationWindow::drawButton(const Rect& rect,const char* label,bool hovered,unsigned long baseColor)
 	{
+	/* Disabled buttons never change on hover */
 	unsigned long fillColor;
-	if(hovered)
+	if(baseColor==colorButtonDisabled)
+		fillColor=colorButtonDisabled;
+	else if(hovered)
 		{
-		if(baseColor==colorFinish)
-			fillColor=colorFinishHover;
-		else if(baseColor==colorReset)
-			fillColor=colorResetHover;
-		else
-			fillColor=colorButtonHover;
+		if(baseColor==colorReset)             fillColor=colorResetHover;
+		else if(baseColor==colorButtonActive) fillColor=colorActiveHover;
+		else                                  fillColor=colorButtonHover;
 		}
 	else
 		fillColor=baseColor;
+
 	setColor(fillColor);
 	XFillRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
 	setColor(colorBorder);
 	XDrawRectangle(display,window,graphicsContext,rect.x,rect.y,rect.w,rect.h);
-	setColor(colorText);
+
+	/* Dim the label text for disabled buttons */
+	setColor(baseColor==colorButtonDisabled?colorSubtleText:colorText);
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	XDrawString(display,window,graphicsContext,rect.x+30,rect.y+(rect.h/2)+12,label,int(strlen(label)));
@@ -250,10 +244,8 @@ void KinectCalibrationWindow::drawTooltip(const Rect& anchor,const char* line1,c
 	const int tooltipWidth=800;
 	const int tooltipHeight=96;
 	int tooltipX=anchor.x+anchor.w/2-tooltipWidth/2;
-	if(tooltipX+tooltipWidth>windowWidth-40)
-		tooltipX=windowWidth-40-tooltipWidth;
-	if(tooltipX<40)
-		tooltipX=40;
+	if(tooltipX+tooltipWidth>windowWidth-40) tooltipX=windowWidth-40-tooltipWidth;
+	if(tooltipX<40)                          tooltipX=40;
 	const int tooltipY=anchor.y+anchor.h+8;
 	setColor(colorPanel);
 	XFillRectangle(display,window,graphicsContext,tooltipX,tooltipY,tooltipWidth,tooltipHeight);
@@ -285,12 +277,27 @@ void KinectCalibrationWindow::drawOutputPanel(void)
 	setColor(colorAccent);
 	drawTextLine(outputPanelRect.x+10,outputPanelRect.y+28,"Calibration Output:");
 	
+	/* Corner count indicator — top right of panel */
+	if(viewer!=0)
+		{
+		int corners=viewer->getCornerCount();
+		bool hasPlane=viewer->hasPlaneEquation();
+		char countBuf[48];
+		snprintf(countBuf,sizeof(countBuf),"Plane: %s  Corners: %d/4",
+			hasPlane?"Yes":"No",corners);
+		if(bodyFont!=0)
+			XSetFont(display,graphicsContext,bodyFont->fid);
+		/* Green when complete, warning orange otherwise */
+		setColor(calibrationComplete()?colorSuccess:colorWarning);
+		int approxW=int(strlen(countBuf))*13;
+		drawTextLine(outputPanelRect.x+outputPanelRect.w-approxW-10,
+			outputPanelRect.y+28,countBuf);
+		}
+	
 	if(viewer==0)
 		return;
 	
-	/* Get the log lines */
 	std::vector<std::string> log=viewer->getOutputLog();
-	
 	if(log.empty())
 		{
 		if(outputFont!=0)
@@ -300,78 +307,60 @@ void KinectCalibrationWindow::drawOutputPanel(void)
 		return;
 		}
 	
-	/* Draw lines from the bottom up so the newest output is always visible */
-	const int lineH=28; // pixels per output line
-	const int textPad=10;
-	const int firstLineY=outputPanelRect.y+50; // top of usable area (below heading)
+	/* Draw lines top-to-bottom, showing as many recent lines as fit */
+	const int lineH=28;
+	const int firstLineY=outputPanelRect.y+54;
 	const int lastLineY=outputPanelRect.y+outputPanelRect.h-10;
 	const int maxLines=(lastLineY-firstLineY)/lineH;
 	
 	if(outputFont!=0)
 		XSetFont(display,graphicsContext,outputFont->fid);
 	
-	/* How many lines to show */
 	int startIdx=int(log.size())-maxLines;
-	if(startIdx<0)
-		startIdx=0;
+	if(startIdx<0) startIdx=0;
 	
 	for(int i=startIdx;i<int(log.size());++i)
 		{
 		const std::string& line=log[i];
 		int y=firstLineY+(i-startIdx)*lineH;
 		
-		/* Color-code by content */
 		if(line.find("Plane:")!=std::string::npos)
 			setColor(colorAccent);
-		else if(line.find("Lower-Left")!=std::string::npos)
-			setColor(colorSuccess);
-		else if(line.find("Lower-Right")!=std::string::npos)
-			setColor(colorSuccess);
-		else if(line.find("Upper-Left")!=std::string::npos)
-			setColor(colorSuccess);
-		else if(line.find("Upper-Right")!=std::string::npos)
+		else if(line.find("Lower-")!=std::string::npos||line.find("Upper-")!=std::string::npos)
 			setColor(colorSuccess);
 		else if(line.find("reset")!=std::string::npos||line.find("Reset")!=std::string::npos)
 			setColor(colorWarning);
 		else
 			setColor(colorText);
 		
-		drawTextLine(outputPanelRect.x+textPad,y,line);
+		drawTextLine(outputPanelRect.x+10,y,line);
 		}
-	
-	/* Corner count indicator in bottom-right of panel */
-	int corners=viewer->getCornerCount();
-	char countBuf[32];
-	snprintf(countBuf,sizeof(countBuf),"Corners: %d/4",corners);
-	if(bodyFont!=0)
-		XSetFont(display,graphicsContext,bodyFont->fid);
-	setColor(corners==4?colorSuccess:colorWarning);
-	int countW=int(strlen(countBuf))*14; // approximate
-	drawTextLine(outputPanelRect.x+outputPanelRect.w-countW-10,
-		outputPanelRect.y+28,countBuf);
 	}
 
 void KinectCalibrationWindow::updateCursor(void)
 	{
+	/* Only show hand cursor over interactive elements;
+	   the finish button only counts as interactive when calibration is complete */
+	const bool complete=calibrationComplete();
 	const bool overAny=
 		averageFramesButtonRect.contains(hoverX,hoverY)||
 		extractPlanesButtonRect.contains(hoverX,hoverY)||
 		measure3DButtonRect.contains(hoverX,hoverY)||
-		finishCalibrationButtonRect.contains(hoverX,hoverY)||
 		resetCornersButtonRect.contains(hoverX,hoverY)||
 		resetAllButtonRect.contains(hoverX,hoverY)||
 		averageFramesInfoIconRect.contains(hoverX,hoverY)||
 		extractPlanesInfoIconRect.contains(hoverX,hoverY)||
-		measure3DInfoIconRect.contains(hoverX,hoverY);
+		measure3DInfoIconRect.contains(hoverX,hoverY)||
+		(complete&&finishCalibrationButtonRect.contains(hoverX,hoverY));
 	XDefineCursor(display,window,overAny?handCursor:arrowCursor);
 	}
 
 void KinectCalibrationWindow::draw(void)
 	{
-	/* Read live state from the viewer for button color feedback */
 	const bool averagingActive     = viewer!=0 && viewer->showAverageFrame;
 	const bool extractPlanesActive = viewer!=0 && viewer->isExtractPlanesToolBound();
 	const bool measure3DActive     = viewer!=0 && viewer->isMeasure3DToolBound();
+	const bool complete            = calibrationComplete();
 
 	/* Background */
 	setColor(colorBackground);
@@ -389,7 +378,7 @@ void KinectCalibrationWindow::draw(void)
 	setColor(colorAccent);
 	drawTextLine(70,100,"Calibrate Kinect Control Window");
 	
-	/* Quick-help subtitle */
+	/* Subtitle */
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorSubtleText);
@@ -415,13 +404,13 @@ void KinectCalibrationWindow::draw(void)
 	if(averageFramesInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(averageFramesInfoIconRect,
 			"Average Frames captures a stable depth average over many frames.",
-			"Remove ALL hands, persons, or other moving objects from within the frame while averaging.",
+			"Remove ALL hands, persons, or moving objects from within the frame while averaging.",
 			"Use this before extracting planes to reduce depth noise.");
 	else if(extractPlanesInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(extractPlanesInfoIconRect,
 			"Sets the Extract Planes Tool to your 'E' key.",
 			"Move cursor to the top left corner of your flat plane.",
-			"Press and hold 'E' while moving your cursor to the bottom right corner of the flat plane, release.");
+			"Press and hold 'E'. Move your sursor to the Bottom-Right corner. Release 'E'.");
 	else if(measure3DInfoIconRect.contains(hoverX,hoverY))
 		drawTooltip(measure3DInfoIconRect,
 			"Sets the Measure 3D Positions Tool to your 'M' key.",
@@ -439,29 +428,51 @@ void KinectCalibrationWindow::draw(void)
 	setColor(colorText);
 	drawTextLine(70,405, "1.  Cover the steam table (or a portion of it) with a flat piece of cardboard or other material");
 	drawTextLine(70,445, "2.  Zoom in (using mouse wheel down) and pan (holding 'Z' and dragging mouse) to enlarge the depth view of the table");
-	drawTextLine(70,485, "3.  Remove ALL hands, persons, and other moving objects within the depth viewer and press the 'Average Frames' button.");
-	drawTextLine(70,525, "    DO NOT place hands or move anything within the depth viewer for 3 seconds. Otherwise, press 'Average Frames' and retry");
-	drawTextLine(70,565, "4.  Press the 'Set Extract Planes Tool' button. This will assign the tool to your 'E' key");
-	drawTextLine(70,605, "5.  Move your cursor to the top left corner of the flat plane on your table");
-	drawTextLine(70,645, "    Press and hold your 'E' key while dragging cursor to the bottom right corner of the flat plane. Release the 'E' Key");
-	drawTextLine(70,685, "6.  Toggle the Average Frames OFF by pressing the 'Average Frames' button");
-	drawTextLine(70,725, "7.  Remove the cardboard, or flat material, from the table and repeat Step 3 to toggle Average Frames ON");
-	drawTextLine(70,765, "8.  Press the 'Set Measure 3D Positions Tool' button. This will assign the tool to your 'M' key");
-	drawTextLine(70,805, "9.  Move your cursor to INSIDE of the Lower-Left corner of the table and press the 'M' key");
-	drawTextLine(70,845, "10. Repeat Step 9 for the Lower-Right, then the Upper-Left, and then the Upper-Right corners");
-	
-	/* Output panel — right side */
+	drawTextLine(70,485, "3.  Remove ALL hands, persons, and other moving objects within the depth viewer and press the 'Average Frames' button above");
+	setColor(colorError);
+	drawTextLine(70,515, "    DO NOT place hands, or move anything, within the depth viewer for 3 seconds. Otherwise, press 'Average Frames' and retry Step 3");
+	setColor(colorText);
+	drawTextLine(70,555, "4.  Press the 'Set Extract Planes Tool' button above. This will assign the tool to your 'E' key");
+	drawTextLine(70,595, "5.  Move your cursor to the top left corner of the flat plane on your table");
+	drawTextLine(70,625, "    Press and hold your 'E'. Drag the cursor to the bottom right corner of the flat plane. Release the 'E' Key");
+	setColor(colorWarning);
+	drawTextLine(70,655, "    VERIFY the plane equation appears in the output log to the right");
+	setColor(colorText);
+	drawTextLine(70,695, "6.  Toggle Average Frames OFF by pressing the 'Average Frames' button above. Remove flat material from the table. Repeat step 3");
+	drawTextLine(70,735, "7.  Press the 'Set Measure 3D Positions Tool' button above. This will assign the tool to your 'M' key");
+	drawTextLine(70,775, "8.  Move your cursor to the INSIDE of the Lower-Left corner of the table and press the 'M' key");
+	setColor(colorWarning);
+	drawTextLine(70,805, "    VERIFY the Lower-Left corner point appears in the output log to the right");
+	setColor(colorText);
+	drawTextLine(70,845, "9.  Repeat Step 8 for the Lower-Right, then the Upper-Left, and then the Upper-Right corners");
+	setColor(colorSuccess);
+	drawTextLine(70,885, "10. If the Finish Calibration button is now GREEN. Press it to save these calibration points to BoxLayout.txt. Window will close");
+	setColor(colorText);
+
+	/* Output panel */
 	drawOutputPanel();
 	
-	/* Reset buttons — below the output panel */
+	/* Reset buttons */
 	drawButton(resetCornersButtonRect,"Reset Corners",
 		resetCornersButtonRect.contains(hoverX,hoverY),colorReset);
 	drawButton(resetAllButtonRect,"Reset All",
 		resetAllButtonRect.contains(hoverX,hoverY),colorReset);
 	
-	/* Finish Calibration button — bottom right */
+	/* Finish button - green and active when complete, grey and inactive otherwise */
 	drawButton(finishCalibrationButtonRect,"Finish Kinect Calibration",
-		finishCalibrationButtonRect.contains(hoverX,hoverY),colorFinish);
+		complete&&finishCalibrationButtonRect.contains(hoverX,hoverY),
+		complete?colorButtonActive:colorButtonDisabled);
+	
+	/* If incomplete, show a small hint below the finish button */
+	if(!complete)
+		{
+		if(bodyFont!=0)
+			XSetFont(display,graphicsContext,bodyFont->fid);
+		setColor(colorSubtleText);
+		drawTextLine(finishCalibrationButtonRect.x,
+			finishCalibrationButtonRect.y+finishCalibrationButtonRect.h+22,
+			"Complete all calibration steps to enable.");
+		}
 	
 	XFlush(display);
 	}
@@ -513,7 +524,20 @@ bool KinectCalibrationWindow::processEvents(void)
 					}
 				else if(finishCalibrationButtonRect.contains(event.xbutton.x,event.xbutton.y))
 					{
-					closeRequested=true;
+					if(calibrationComplete())
+						{
+						/* Write BoxLayout.txt and shut down */
+						if(viewer!=0)
+							viewer->writeAndFinish();
+						}
+					else
+						{
+						/* Push a reminder into the output log so the user
+						   sees why the button isn't working */
+						if(viewer!=0)
+							viewer->outputLog.push_back(
+								"Complete plane + all 4 corners first.");
+						}
 					}
 				draw();
 				break;
