@@ -5,6 +5,10 @@
 #include <string>
 #include <iostream>
 #include <cstdlib>
+#include <unistd.h>
+#include <limits.h>
+#include <string>
+#include <filesystem>
 
 struct Rect {
     int x, y, w, h;
@@ -25,6 +29,15 @@ unsigned long allocColor(Display* display, const char* hex, unsigned long fallba
     return fallback;
 }
 
+std::string getExecutableDir() {
+    char buffer[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        return std::filesystem::path(buffer).parent_path().string();
+    }
+    return "";
+}
 
 
 
@@ -475,7 +488,7 @@ int main() {
             if (button.contains(mx, my)) {
                 
 
-                std::string cmdLine = "cd ../arsandbox/bin && ./SARndbox -fpv";
+                std::string cmdLine = "cd "+getExecutableDir()+"/../arsandbox/bin && ./SARndbox -fpv";
 
                 //added flags
                 if (colorFlagChecked == true){
@@ -503,7 +516,7 @@ int main() {
                 return 0;
             }
             if (calibrateButton.contains(mx, my)) {
-                std::string cmdLine = "cd ../arsandbox/bin && ./CalibrateProjector";
+                std::string cmdLine = "cd "+getExecutableDir()+"/../arsandbox/bin && ./CalibrateProjector";
 
                 system(cmdLine.c_str());
                 
@@ -511,7 +524,7 @@ int main() {
                 
             }
             if (kinectButton.contains(mx, my)) {
-            std::string cmdLine = "cd ../kinect/bin && ./RawKinectViewer";
+            std::string cmdLine = "cd "+getExecutableDir()+"/../kinect/bin && ./RawKinectViewer";
 
             system(cmdLine.c_str());
 
@@ -537,8 +550,6 @@ int main() {
                 snowMeltChecked = !snowMeltChecked;
                 XEvent redraw;
             }
-            
-
 
             XEvent redraw;
             redraw.type = Expose;
