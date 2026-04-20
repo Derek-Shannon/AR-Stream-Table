@@ -541,6 +541,8 @@ int main() {
 
 
             XEvent redraw;
+            redraw.type = Expose;
+            XSendEvent(display, window, False, ExposureMask, &redraw);
         }
     }
 
