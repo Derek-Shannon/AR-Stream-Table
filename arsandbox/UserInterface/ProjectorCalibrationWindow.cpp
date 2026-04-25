@@ -222,8 +222,8 @@ void ProjectorCalibrationWindow::drawTipsTooltip(const Rect& anchor)
 	const char* line2="- Try to keep hands and body out of view";
 	const char* line3="- Capture tie points on flat sand, raised areas, and inside holes";
 	const char* line4="- Green circle size may differ from calibration disk (that is okay!)";
-	const char* line5="- Add more tie points if needed and then red crosshair should stay centered when complete";
-	const char* line6="- Exiting the Calibration Projector early without saving will cancel all tie points";
+	const char* line5="- Exiting the Calibration Projector early without saving will cancel all tie points";
+	const char* line6="- Add more tie points if needed"; //and then red crosshair should stay centered when complete
 	XDrawString(display,window,graphicsContext,tooltipX+14,tooltipY+40,line0,int(strlen(line0)));
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
@@ -415,7 +415,7 @@ void ProjectorCalibrationWindow::draw(void)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorSuccess);
 	drawTextLine(145,835,"After at least 12 tie points, place the disk anywhere in the stream table.");
-	drawTextLine(145,865,"Confirm the red crosshair is aligned with the disk (a green circle should appear on the disk).");
+	//drawTextLine(145,865,"Confirm the red crosshair is aligned with the disk (a green circle should appear on the disk).");
 	if(headingFont!=0)
 		XSetFont(display,graphicsContext,headingFont->fid);
 	setColor(colorText);
