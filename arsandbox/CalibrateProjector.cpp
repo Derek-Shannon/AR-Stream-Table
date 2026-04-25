@@ -683,6 +683,12 @@ void CalibrateProjector::startTiePointCapture(void)
 	tp.o=captureCenter;
 	tiePoints.push_back(tp);
 	++tiePointIndex;
+
+	/* //Recalculate projection when minimum tie point count is reached and after every additional tie point. 
+	const size_t minTiePointCount=size_t(numTiePoints[0]*numTiePoints[1]);
+	if(tiePoints.size()>=minTiePointCount)
+		calcCalibration(); */
+
 	
 	tiePointCaptureFailed=false;
 	std::cout<<"CalibrateProjector: Captured tie point "<<tiePoints.size()<<std::endl;
