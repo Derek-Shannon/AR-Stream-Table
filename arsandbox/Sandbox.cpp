@@ -1534,7 +1534,12 @@ void Sandbox::frame(void)
 				const GLfloat maxUiWaterFlow=waterSpeed>0.0?rainStrength/GLfloat(waterSpeed):0.0f;
 				const GLfloat uiWaterFlow=GLfloat(controlWindow->getWaterFlowRate())*maxUiWaterFlow;
 				const GLfloat mediumDrainWaterFlow=maxUiWaterFlow*0.5f;
-				const GLfloat signedUiWaterFlow=controlWindow->getDrainState()?-mediumDrainWaterFlow:uiWaterFlow;
+				const GLfloat gentleAddWaterFlow=maxUiWaterFlow*0.1f;
+				GLfloat signedUiWaterFlow=uiWaterFlow;
+				if(controlWindow->getDrainState())
+					signedUiWaterFlow=-mediumDrainWaterFlow;
+				else if(controlWindow->getAddState())
+					signedUiWaterFlow=gentleAddWaterFlow;
 				targetWaterDeposit+=signedUiWaterFlow;
 				}
 			if(waterTable->getWaterDeposit()!=targetWaterDeposit)

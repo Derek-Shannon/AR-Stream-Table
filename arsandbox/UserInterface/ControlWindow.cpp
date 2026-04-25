@@ -60,7 +60,7 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 		}
 	
 	bool baseInteractive = scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||
-						scaledRect(exportButtonRect).contains(x,y)||scaledRect(drainButtonRect).contains(x,y)||
+						scaledRect(exportButtonRect).contains(x,y)||scaledRect(addButtonRect).contains(x,y)||scaledRect(drainButtonRect).contains(x,y)||
 						scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
 						scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y);
 	if (debugEnabled) 
@@ -263,6 +263,7 @@ void ControlWindow::draw(void)
 	const Rect exitRect=scaledRect(exitButtonRect);
 	const Rect freezeRect=scaledRect(freezeButtonRect);
 	const Rect exportRect=scaledRect(exportButtonRect);
+	const Rect addRect=scaledRect(addButtonRect);
 	const Rect drainRect=scaledRect(drainButtonRect);
 	const Rect contourLabelRect=scaledRect(contourIntervalLabelRect);
 	const Rect contour075Rect=scaledRect(contourIntervalButton075Rect);
@@ -293,6 +294,8 @@ void ControlWindow::draw(void)
 	setFont(title);
 	setColor(colorSubtleText);
 	XDrawString(display,window,graphicsContext,10,98,"Control for Stream Table",24);
+	const char* addButtonLabel="Hold to Add Digital Water";
+	drawButton(addRect,addButtonLabel,addWaterOn,addRect.contains(hoverX,hoverY));
 	const char* drainButtonLabel="Hold to Drain Digital Water";
 	drawButton(drainRect,drainButtonLabel,removeWaterOn,drainRect.contains(hoverX,hoverY));
 	drawCenteredText(contourLabelRect,contourLabelRect.y+30,"Adjust Contour Interval:",section,colorText);
@@ -426,7 +429,7 @@ void ControlWindow::draw(void)
 
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
-	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
+	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),addWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
 	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true), debugEnabled(false),
 	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
@@ -629,6 +632,7 @@ bool ControlWindow::processEvents(void)
 				const Rect exitRect=scaledRect(exitButtonRect);
 				const Rect freezeRect=scaledRect(freezeButtonRect);
 				const Rect exportRect=scaledRect(exportButtonRect);
+			const Rect addRect=scaledRect(addButtonRect);
 			const Rect drainRect=scaledRect(drainButtonRect);
 			const Rect contour075Rect=scaledRect(contourIntervalButton075Rect);
 			const Rect contour1Rect=scaledRect(contourIntervalButton1Rect);
@@ -655,9 +659,15 @@ bool ControlWindow::processEvents(void)
 				exportNameInput.clear();
 				openExportDialog();
 				}
+			else if(addRect.contains(x,y))
+				{
+				addWaterOn=true;
+				removeWaterOn=false;
+				}
 			else if(drainRect.contains(x,y))
 				{
 				removeWaterOn=true;
+				addWaterOn=false;
 				}
 			else if(contour075Rect.contains(x,y))
 				contourLineInterval=0.75;
@@ -690,7 +700,10 @@ bool ControlWindow::processEvents(void)
 		else if(event.type==ButtonRelease)
 			{
 			if(event.xbutton.button==Button1)
+				{
 				removeWaterOn=false;
+				addWaterOn=false;
+				}
 			testingSliderDragging=false;
 			draw();
 			}
@@ -732,7 +745,8 @@ bool ControlWindow::processEvents(void)
 const ControlWindow::Rect ControlWindow::exitButtonRect={844,468,140,40};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
-const ControlWindow::Rect ControlWindow::drainButtonRect={24,130,420,56};
+const ControlWindow::Rect ControlWindow::addButtonRect={24,70,420,48};
+const ControlWindow::Rect ControlWindow::drainButtonRect={24,130,420,48};
 const ControlWindow::Rect ControlWindow::contourIntervalLabelRect={24,206,420,40};
 const ControlWindow::Rect ControlWindow::contourIntervalButton075Rect={24,250,206,56};
 const ControlWindow::Rect ControlWindow::contourIntervalButton1Rect={238,250,206,56};
@@ -751,6 +765,11 @@ const ControlWindow::Rect ControlWindow::exportDialogOkRect={580,315,120,34};
 bool ControlWindow::getDrainState(void) const
 	{
 	return removeWaterOn;
+	}
+
+bool ControlWindow::getAddState(void) const
+	{
+	return addWaterOn;
 	}
 
 double ControlWindow::getContourLineInterval(void) const
