@@ -31,6 +31,9 @@ class ControlWindow
 	static const Rect exportButtonRect;
 	static const Rect addButtonRect;
 	static const Rect drainButtonRect;
+	static const Rect faucet1Rect;
+    static const Rect faucet2Rect;
+    static const Rect faucet3Rect;
 	static const Rect contourIntervalLabelRect;
 	static const Rect contourIntervalButton075Rect;
 	static const Rect contourIntervalButton1Rect;
@@ -60,6 +63,9 @@ class ControlWindow
 	bool isMaximized;
 	bool removeWaterOn;
 	bool addWaterOn;
+	bool faucet1On;
+    bool faucet2On;
+    bool faucet3On;
 	bool debugEnabled;
 	double contourLineInterval;
 	bool hoverInteractive;
@@ -149,6 +155,9 @@ class ControlWindow
 	bool getFreezeState(void) const;
 	bool getDrainState(void) const;
 	bool getAddState(void) const;
+	bool getFaucet1State(void) const;
+    bool getFaucet2State(void) const;
+    bool getFaucet3State(void) const;
 	bool getMaskState(void) const;
 	double getContourLineInterval(void) const;
 	float getAppliedTiltValue(void) const;
