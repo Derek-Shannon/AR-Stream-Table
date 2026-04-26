@@ -260,6 +260,7 @@ class Sandbox:public Vrui::Application,public GLObject
 	double exportStatusTime; // Application time when the current success/error export status was shown
 	std::string exportScreenshotFileName; // Path of the current screenshot request
 	double customMaskScale;
+	double faucetRadius;
 	
 	/* Private methods: */
 	static std::string trimViewName(const std::string& name);

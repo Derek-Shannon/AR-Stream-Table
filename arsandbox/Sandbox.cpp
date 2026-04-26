@@ -368,17 +368,23 @@ void Sandbox::addWater(GLContextData& contextData) const
 			glVertexAttrib1fARB(1,rain);
 
 			// Define how large the rain cloud should be
-			Scalar cloudRadius = 10.0;
+			Scalar cloudRadius = faucetRadius;
 			
 			//Finding Center
 			Point tableRightCenter = Geometry::mid(basePlaneCorners[1], basePlaneCorners[3]);
-			Point tableRightTop = Geometry::mid(basePlaneCorners[1], tableRightCenter);
-			Point tableRightBottom = Geometry::mid(basePlaneCorners[3], tableRightCenter);
+			Point tableRightTop = Geometry::mid(basePlaneCorners[3], tableRightCenter);
+			Point tableRightBottom = Geometry::mid(basePlaneCorners[1], tableRightCenter);
 		
 			// Render the virtual rain cloud
-			renderRainDisk(tableRightCenter, cloudRadius, rain);
-			renderRainDisk(tableRightTop, cloudRadius, rain);
-			renderRainDisk(tableRightBottom, cloudRadius, rain);
+			if(controlWindow->getFaucet1State()){
+				renderRainDisk(tableRightTop, cloudRadius, rain);
+			}
+			if(controlWindow->getFaucet2State()){
+				renderRainDisk(tableRightCenter, cloudRadius, rain);
+			}
+			if(controlWindow->getFaucet3State()){
+				renderRainDisk(tableRightBottom, cloudRadius, rain);
+			}
 
 			glPopAttrib();
 			}
@@ -800,7 +806,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	 controlWindow(0),uiContourLineSpacing(0.75f),
 	 exportScreenshotPending(false),exportScreenshotRequestTime(0.0),exportStatusTime(-1.0),exportScreenshotFileName(),
 	 controlPipeFd(-1),
-	 customMaskScale(1.1)
+	 customMaskScale(1.1), faucetRadius(5.0)
 	{
 	/* Read the sandbox's default configuration parameters: */
 	std::string sandboxConfigFileName=CONFIG_CONFIGDIR;
@@ -837,6 +843,7 @@ Sandbox::Sandbox(int& argc,char**& argv)
 	float demDistScale=cfg.retrieveValue<float>("./demDistScale",1.0f);
 	std::string controlPipeName=cfg.retrieveString("./controlPipeName","");
 	customMaskScale = cfg.retrieveValue<double>("./Masking/maskScaleOffset", 1.1);
+	faucetRadius = cfg.retrieveValue<double>("./WaterSimulation/faucetRadius", 5.0);
 	bool enableDebug = false;
 	
 	/* Process command line parameters: */

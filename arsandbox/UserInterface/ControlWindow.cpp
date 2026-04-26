@@ -62,7 +62,8 @@ bool ControlWindow::isInteractiveAt(int x,int y) const
 	bool baseInteractive = scaledRect(exitButtonRect).contains(x,y)||scaledRect(freezeButtonRect).contains(x,y)||
 						scaledRect(exportButtonRect).contains(x,y)||scaledRect(addButtonRect).contains(x,y)||scaledRect(drainButtonRect).contains(x,y)||
 						scaledRect(contourIntervalButton075Rect).contains(x,y)||scaledRect(contourIntervalButton1Rect).contains(x,y)||
-						scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y);
+						scaledRect(contourIntervalButton2Rect).contains(x,y)||scaledRect(contourIntervalButton4Rect).contains(x,y)||
+						scaledRect(faucet1Rect).contains(x,y)||scaledRect(faucet2Rect).contains(x,y)||scaledRect(faucet3Rect).contains(x,y);
 	if (debugEnabled) 
         {
         return baseInteractive || scaledRect(testingCheckboxRect).contains(x,y) || 
@@ -265,6 +266,9 @@ void ControlWindow::draw(void)
 	const Rect exportRect=scaledRect(exportButtonRect);
 	const Rect addRect=scaledRect(addButtonRect);
 	const Rect drainRect=scaledRect(drainButtonRect);
+	const Rect faucet1=scaledRect(faucet1Rect);
+    const Rect faucet2=scaledRect(faucet2Rect);
+    const Rect faucet3=scaledRect(faucet3Rect);
 	const Rect contourLabelRect=scaledRect(contourIntervalLabelRect);
 	const Rect contour075Rect=scaledRect(contourIntervalButton075Rect);
 	const Rect contour1Rect=scaledRect(contourIntervalButton1Rect);
@@ -298,6 +302,11 @@ void ControlWindow::draw(void)
 	drawButton(addRect,addButtonLabel,addWaterOn,addRect.contains(hoverX,hoverY));
 	const char* drainButtonLabel="Hold to Drain Digital Water";
 	drawButton(drainRect,drainButtonLabel,removeWaterOn,drainRect.contains(hoverX,hoverY));
+
+	drawButton(faucet1, "Faucet 1", faucet1On, faucet1.contains(hoverX,hoverY));
+    drawButton(faucet2, "Faucet 2", faucet2On, faucet2.contains(hoverX,hoverY));
+    drawButton(faucet3, "Faucet 3", faucet3On, faucet3.contains(hoverX,hoverY));
+
 	drawCenteredText(contourLabelRect,contourLabelRect.y+30,"Adjust Contour Interval:",section,colorText);
 	drawButton(contour075Rect,"0.75 cm",fabs(contourLineInterval-0.75)<1.0e-6,contour075Rect.contains(hoverX,hoverY));
 	drawButton(contour1Rect,"1 cm",fabs(contourLineInterval-1.0)<1.0e-6,contour1Rect.contains(hoverX,hoverY));
@@ -430,7 +439,7 @@ void ControlWindow::draw(void)
 ControlWindow::ControlWindow(void)
 	:display(0),window(0),graphicsContext(0),wmDeleteWindow(None),arrowCursor(None),handCursor(None),closeRequested(false),
 	 waterSimulationOn(false),freezeOn(false),exportRequested(false),exportInProgress(false),isMaximized(true),removeWaterOn(false),addWaterOn(false),contourLineInterval(0.75),hoverInteractive(false),exportDialogVisible(false),hoverX(0),hoverY(0),
-	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true), debugEnabled(false),
+	 waterFlowRate(0.0),appliedAngleValue(0),sensorAngleValue(0),testingTiltValue(0),testingEnabled(false),testingSliderDragging(false), currentFps(0), arduinoSensor(0), maskEnabled(true), debugEnabled(false), faucet1On(false), faucet2On(false), faucet3On(false),
 	 titleFont(0),sectionFont(0),statFont(0),titleFontLarge(0),sectionFontLarge(0),statFontLarge(0),
 	 colorBackground(0),colorPanel(0),colorBorder(0),colorButton(0),
 	 colorButtonActive(0),colorButtonHover(0),colorButtonBorder(0),colorText(0),colorSubtleText(0),colorAccent(0),colorSuccess(0),colorError(0),colorOverlay(0),colorInputBackground(0),colorOkButton(0),colorOkButtonHover(0),
@@ -634,6 +643,9 @@ bool ControlWindow::processEvents(void)
 				const Rect exportRect=scaledRect(exportButtonRect);
 			const Rect addRect=scaledRect(addButtonRect);
 			const Rect drainRect=scaledRect(drainButtonRect);
+			const Rect f1Rect=scaledRect(faucet1Rect);
+            const Rect f2Rect=scaledRect(faucet2Rect);
+            const Rect f3Rect=scaledRect(faucet3Rect);
 			const Rect contour075Rect=scaledRect(contourIntervalButton075Rect);
 			const Rect contour1Rect=scaledRect(contourIntervalButton1Rect);
 			const Rect contour2Rect=scaledRect(contourIntervalButton2Rect);
@@ -669,6 +681,12 @@ bool ControlWindow::processEvents(void)
 				removeWaterOn=true;
 				addWaterOn=false;
 				}
+			else if(f1Rect.contains(x,y))
+                faucet1On = !faucet1On;
+            else if(f2Rect.contains(x,y))
+                faucet2On = !faucet2On;
+            else if(f3Rect.contains(x,y))
+                faucet3On = !faucet3On;
 			else if(contour075Rect.contains(x,y))
 				contourLineInterval=0.75;
 			else if(contour1Rect.contains(x,y))
@@ -745,8 +763,11 @@ bool ControlWindow::processEvents(void)
 const ControlWindow::Rect ControlWindow::exitButtonRect={844,468,140,40};
 const ControlWindow::Rect ControlWindow::freezeButtonRect={540,156,210,36};
 const ControlWindow::Rect ControlWindow::exportButtonRect={774,156,210,36};
-const ControlWindow::Rect ControlWindow::addButtonRect={24,70,420,48};
-const ControlWindow::Rect ControlWindow::drainButtonRect={24,130,420,48};
+const ControlWindow::Rect ControlWindow::addButtonRect={24,64,420,38};
+const ControlWindow::Rect ControlWindow::drainButtonRect={24,110,420,38};
+const ControlWindow::Rect ControlWindow::faucet1Rect={24,156,130,40};
+const ControlWindow::Rect ControlWindow::faucet2Rect={169,156,130,40};
+const ControlWindow::Rect ControlWindow::faucet3Rect={314,156,130,40};
 const ControlWindow::Rect ControlWindow::contourIntervalLabelRect={24,206,420,40};
 const ControlWindow::Rect ControlWindow::contourIntervalButton075Rect={24,250,206,56};
 const ControlWindow::Rect ControlWindow::contourIntervalButton1Rect={238,250,206,56};
@@ -761,6 +782,9 @@ const ControlWindow::Rect ControlWindow::exportDialogInputRect={320,235,380,34};
 const ControlWindow::Rect ControlWindow::exportDialogCancelRect={320,315,120,34};
 const ControlWindow::Rect ControlWindow::exportDialogOkRect={580,315,120,34};
 
+bool ControlWindow::getFaucet1State(void) const { return faucet1On; }
+bool ControlWindow::getFaucet2State(void) const { return faucet2On; }
+bool ControlWindow::getFaucet3State(void) const { return faucet3On; }
 
 bool ControlWindow::getDrainState(void) const
 	{
