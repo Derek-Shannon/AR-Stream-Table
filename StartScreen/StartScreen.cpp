@@ -80,10 +80,44 @@ int main() {
 
     GC gc = XCreateGC(display, window, 0, nullptr);
     
-    XFontStruct* font = XLoadQueryFont(display, "10x20");
-    if (font) {
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    
+    
+    //XFontStruct* font = XLoadQueryFont(display, "10x20");
+    XFontStruct* font = nullptr;
+    auto loadFont = [&](float scaleY) {
+        if (font) {
+            XFreeFont(display, font);
+            font = nullptr;
+        }
+
+        const char* fontName;
+
+        if (scaleY < 0.99f) fontName = "6x10";
+        else if (scaleY < 3.5f) fontName = "10x20";
+        else fontName = "12x24";
+
+        font = XLoadQueryFont(display, fontName);
+
+        if (!font) {
+            font = XLoadQueryFont(display, "12x24");
+        }
+
+        if (font) {
+            XSetFont(display, gc, font->fid);
+        }
+        
+    };
+
+    
+    /*if (font) {
         XSetFont(display, gc, font->fid);
-    }
+    } */
+     
+
+    
+
 
     // Interactive state flags
     bool calibrateHover = false;
@@ -120,13 +154,13 @@ int main() {
         titleY = 30 * scaleY;
 
         // Calibrate Button
-        calibrateButton.w = 200 * scaleX;
+        calibrateButton.w = 220 * scaleX;
         calibrateButton.h = 25 * scaleY; 
         calibrateButton.x = leftColumnX; 
         calibrateButton.y = itemsStartY; 
 
         // Kinect Button
-        kinectButton.w = 200 * scaleX;
+        kinectButton.w = 220 * scaleX;
         kinectButton.h = 25 * scaleY; 
         kinectButton.x = leftColumnX; 
         kinectButton.y = itemsStartY + (35 * scaleY);
@@ -155,12 +189,17 @@ int main() {
         button.h = 50 * scaleY;
         button.x = rightColumnX;
         button.y = snowMeltFlag.y + (35 * scaleY);
+
+        loadFont(scaleY);
     };
 
     // Initial layout calculation
     updateLayout();
 
     while (true) {
+        float scaleX = (float)winWidth / (float)baseWidth;
+        float scaleY = (float)winHeight / (float)baseHeight;
+        
         XEvent event;
         XNextEvent(display, &event);
 
@@ -187,7 +226,8 @@ int main() {
 
             int textWidth = XTextWidth(font, label.c_str(), label.length());
             int textX = button.x + (button.w - textWidth) / 2;
-            int textY = button.y + button.h / 2 + 5;
+            //int textY = button.y + button.h / 2 + 5;
+            int textY = button.y + button.h / 2 + (5 * scaleY);
             XSetForeground(display, gc, colorText);
             XDrawString(display, window, gc, textX, textY, label.c_str(), label.length());
             
@@ -199,7 +239,7 @@ int main() {
 
             int calTextWidth = XTextWidth(font, calibrateLabel.c_str(), calibrateLabel.length());
             int calTextX = calibrateButton.x + (calibrateButton.w - calTextWidth) / 2;
-            int calTextY = calibrateButton.y + calibrateButton.h / 2 + 5;
+            int calTextY = calibrateButton.y + calibrateButton.h / 2 + (5 * scaleY);
             XSetForeground(display, gc, colorText);
             XDrawString(display, window, gc, calTextX, calTextY, calibrateLabel.c_str(), calibrateLabel.length());
             
@@ -211,7 +251,7 @@ int main() {
 
             int kTextWidth = XTextWidth(font, kinectLabel.c_str(), kinectLabel.length());
             int kTextX = kinectButton.x + (kinectButton.w - kTextWidth) / 2;
-            int kTextY = kinectButton.y + kinectButton.h / 2 + 5;
+            int kTextY = kinectButton.y + kinectButton.h / 2 + (5 * scaleY);
             XSetForeground(display, gc, colorText);
             XDrawString(display, window, gc, kTextX, kTextY, kinectLabel.c_str(), kinectLabel.length());
 
@@ -229,8 +269,10 @@ int main() {
                 XDrawString(display, window, gc, tx, ty, lbl.c_str(), lbl.length());
 
                 if (isChecked) {
-                    const char* mark = "x";
-                    int markX = rect.x + (rect.w / 2) - 3;
+                    const char* mark = "o";
+                    /*int markX = rect.x + (rect.w / 2) - 3;
+                    int markY = rect.y + (rect.h / 2) + 4;*/
+                    int markX = rect.x + (rect.w / 2) - 4;
                     int markY = rect.y + (rect.h / 2) + 4;
                     XSetForeground(display, gc, colorText);
                     XDrawString(display, window, gc, markX, markY, mark, 1);
@@ -276,7 +318,7 @@ int main() {
             int my = event.xbutton.y;
 
             if (button.contains(mx, my)) {
-                std::string cmdLine = "cd "+getExecutableDir()+"/../arsandbox/bin && ./SARndbox -fpv";
+                std::string cmdLine = "cd "+getExecutableDir()+"/../arsandbox/bin && ./SARndbox -fpv -uhm";
 
                 if (FPVflagChecked) cmdLine += " -debug";
                 if (heavyRainChecked) cmdLine += " -rs .75";
