@@ -353,6 +353,36 @@ void Sandbox::addWater(GLContextData& contextData) const
 		
 		glPopAttrib();
 		}
+		// =============================
+		// Simulated Rain
+		// =============================
+		
+		bool autoRainEnabled = true; 
+
+		if (autoRainEnabled) 
+			{
+			glPushAttrib(GL_ENABLE_BIT);
+			glDisable(GL_CULL_FACE);
+			
+			GLfloat rain = rainStrength / waterSpeed;
+			glVertexAttrib1fARB(1,rain);
+
+			// Define how large the rain cloud should be
+			Scalar cloudRadius = 10.0;
+			
+			//Finding Center
+			Point tableRightCenter = Geometry::mid(basePlaneCorners[1], basePlaneCorners[3]);
+			Point tableRightTop = Geometry::mid(basePlaneCorners[1], tableRightCenter);
+			Point tableRightBottom = Geometry::mid(basePlaneCorners[3], tableRightCenter);
+		
+			// Render the virtual rain cloud
+			renderRainDisk(tableRightCenter, cloudRadius, rain);
+			renderRainDisk(tableRightTop, cloudRadius, rain);
+			renderRainDisk(tableRightBottom, cloudRadius, rain);
+
+			glPopAttrib();
+			}
+    	// ========================================================
 	}
 
 void Sandbox::pauseUpdatesCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData)
