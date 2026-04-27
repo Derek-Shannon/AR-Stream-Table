@@ -2000,6 +2000,7 @@ void Sandbox::frame(void)
 	
 	if(pauseUpdates||controlWindow!=0)
 		Vrui::scheduleUpdate(Vrui::getApplicationTime()+1.0/30.0);
+	Vrui::requestUpdate(); //Increase FPS!
 	}
 
 void Sandbox::display(GLContextData& contextData) const
