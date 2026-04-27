@@ -371,19 +371,19 @@ void Sandbox::addWater(GLContextData& contextData) const
 			Scalar cloudRadius = faucetRadius;
 			
 			//Finding Center
-			Point tableRightCenter = Geometry::mid(basePlaneCorners[1], basePlaneCorners[3]);
-			Point tableRightTop = Geometry::mid(basePlaneCorners[3], tableRightCenter);
-			Point tableRightBottom = Geometry::mid(basePlaneCorners[1], tableRightCenter);
+			Point tableLeftCenter = Geometry::mid(basePlaneCorners[0], basePlaneCorners[2]);
+			Point tableLeftTop = Geometry::mid(basePlaneCorners[2], tableLeftCenter);
+			Point tableLeftBottom = Geometry::mid(basePlaneCorners[0], tableLeftCenter);
 		
 			// Render the virtual rain cloud
 			if(controlWindow->getFaucet1State()){
-				renderRainDisk(tableRightTop, cloudRadius, rain);
+				renderRainDisk(tableLeftTop, cloudRadius, rain);
 			}
 			if(controlWindow->getFaucet2State()){
-				renderRainDisk(tableRightCenter, cloudRadius, rain);
+				renderRainDisk(tableLeftCenter, cloudRadius, rain);
 			}
 			if(controlWindow->getFaucet3State()){
-				renderRainDisk(tableRightBottom, cloudRadius, rain);
+				renderRainDisk(tableLeftBottom, cloudRadius, rain);
 			}
 
 			glPopAttrib();
@@ -1511,7 +1511,7 @@ void Sandbox::frame(void)
 		// Fetch Roll
 		float rollDegrees = 0.0f; //sensor.getRoll();
 		if(controlWindow!=0)
-			rollDegrees=float(controlWindow->getAppliedTiltValue());
+			rollDegrees=-float(controlWindow->getAppliedTiltValue());
 		//std::cerr<<"rollDegrees: " << rollDegrees <<std::endl;
 		
 		double rollRads = rollDegrees * (M_PI / 180.0);
