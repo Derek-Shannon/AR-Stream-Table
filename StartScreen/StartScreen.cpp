@@ -53,12 +53,13 @@ int main() {
     unsigned long colorBorder = allocColor(display,"#2d3f64", WhitePixel(display,screen));
     unsigned long colorText = allocColor(display,"#ecf2ff", WhitePixel(display,screen));
     unsigned long colorAccent = allocColor(display,"#4cc9f0", WhitePixel(display,screen));
+    unsigned long colorCheck = allocColor(display,"#00c853", WhitePixel(display,screen));
 
     int baseWidth = 650;
     int baseHeight = 220;
     
-    int winWidth = baseWidth;
-    int winHeight = baseHeight; 
+    int winWidth = 1920;
+    int winHeight = 1080; 
 
     Window window = XCreateSimpleWindow(
         display,
@@ -86,7 +87,7 @@ int main() {
     
     //XFontStruct* font = XLoadQueryFont(display, "10x20");
     XFontStruct* font = nullptr;
-    auto loadFont = [&](float scaleY) {
+    auto loadFont = [&](float scaleX,float scaleY) {
         if (font) {
             XFreeFont(display, font);
             font = nullptr;
@@ -94,8 +95,8 @@ int main() {
 
         const char* fontName;
 
-        if (scaleY < 0.99f) fontName = "6x10";
-        else if (scaleY < 3.5f) fontName = "10x20";
+        if (scaleX < 0.9f || scaleY < 0.9) fontName = "6x10";
+        else if (scaleX < 1.1f || scaleY < 1.1) fontName = "10x20";
         else fontName = "12x24";
 
         font = XLoadQueryFont(display, fontName);
@@ -157,13 +158,13 @@ int main() {
         calibrateButton.w = 220 * scaleX;
         calibrateButton.h = 25 * scaleY; 
         calibrateButton.x = leftColumnX; 
-        calibrateButton.y = itemsStartY; 
+        calibrateButton.y = itemsStartY + (35 * scaleY); 
 
         // Kinect Button
         kinectButton.w = 220 * scaleX;
         kinectButton.h = 25 * scaleY; 
         kinectButton.x = leftColumnX; 
-        kinectButton.y = itemsStartY + (35 * scaleY);
+        kinectButton.y = itemsStartY;
 
         // Checkboxes (kept square using scaleX for uniformity)
         int boxSize = 10 * scaleX;
@@ -190,7 +191,7 @@ int main() {
         button.x = rightColumnX;
         button.y = snowMeltFlag.y + (35 * scaleY);
 
-        loadFont(scaleY);
+        loadFont(scaleX,scaleY);
     };
 
     // Initial layout calculation
@@ -269,13 +270,21 @@ int main() {
                 XDrawString(display, window, gc, tx, ty, lbl.c_str(), lbl.length());
 
                 if (isChecked) {
-                    const char* mark = "o";
-                    /*int markX = rect.x + (rect.w / 2) - 3;
-                    int markY = rect.y + (rect.h / 2) + 4;*/
-                    int markX = rect.x + (rect.w / 2) - 4;
-                    int markY = rect.y + (rect.h / 2) + 4;
-                    XSetForeground(display, gc, colorText);
-                    XDrawString(display, window, gc, markX, markY, mark, 1);
+                    XSetForeground(display, gc, colorCheck);
+
+                    int x1 = rect.x + rect.w * 0.2;
+                    int y1 = rect.y + rect.h * 0.55;
+
+                    int x2 = rect.x + rect.w * 0.45;
+                    int y2 = rect.y + rect.h * 0.8;
+
+                    int x3 = rect.x + rect.w * 0.8;
+                    int y3 = rect.y + rect.h * 0.25;
+
+                    // Dra using two lines
+                    XSetLineAttributes(display, gc, 2, LineSolid, CapRound, JoinRound);
+                    XDrawLine(display, window, gc, x1, y1, x2, y2);
+                    XDrawLine(display, window, gc, x2, y2, x3, y3);
                 }
             };
 
