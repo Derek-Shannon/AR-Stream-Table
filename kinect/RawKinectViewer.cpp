@@ -663,9 +663,24 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
         if(pos!=std::string::npos)
             formatted.replace(pos,needle.size(),", ");
  
-        Threads::Spinlock::Lock lock(outputLogMutex);
-        planeEquationLine=formatted;
-        outputLog.push_back("Plane: "+formatted);
+        /* Apply depth offset to shift sea level to mid-table.
+		   The formatted string is "(nx, ny, nz), depth" — we parse
+		   and adjust the depth value at the end. 
+		*/
+		static const double depthOffset=-18.0; // Adjust to the depth 
+		std::string::size_type commaPos=formatted.rfind(',');
+		if(commaPos!=std::string::npos)
+			{
+			double depth=std::stod(formatted.substr(commaPos+1));
+			depth+=depthOffset;
+			char depthBuf[64];
+			snprintf(depthBuf,sizeof(depthBuf)," %g",depth);
+			formatted=formatted.substr(0,commaPos+1)+depthBuf;
+			}
+
+		Threads::Spinlock::Lock lock(outputLogMutex);
+		planeEquationLine=formatted;
+		outputLog.push_back("Plane: "+formatted);
         }
  
     void RawKinectViewer::logMeasurement(const std::string& paddedPoint,const std::string& compactPoint)
