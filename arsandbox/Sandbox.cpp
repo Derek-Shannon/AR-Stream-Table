@@ -1528,12 +1528,21 @@ void Sandbox::frame(void)
 		// Update the renderer with the new adjusted plane
 		Geometry::Plane<double,3> tiltedPlane(newNormal, originalBoxCenter);
 		depthImageRenderer->setBasePlane(tiltedPlane);
+
+		//ColorShift
+		double AbsRollDegrees = fabs(rollDegrees * (M_PI / 180.0));
+		double verticalExpansion = boxSize * sin(AbsRollDegrees);
+		double baseMin = -40.0;
+        double baseMax = 25.0;
+		double newMin = baseMin - verticalExpansion;
+        double newMax = baseMax + verticalExpansion;
 		
 		// Update the contour line projection
 		for(size_t i=0; i<renderSettings.size(); ++i)
 		{
 			if(renderSettings[i].elevationColorMap != 0)
 			{
+				renderSettings[i].elevationColorMap->setScalarRange(newMin, newMax);
 				renderSettings[i].elevationColorMap->calcTexturePlane(depthImageRenderer);
 			}
 		}
