@@ -317,11 +317,11 @@ void ControlWindow::draw(void)
 	//Arduino loop
 	float previousSensorAngleValue = sensorAngleValue;
 	if(arduinoSensor->isActive())
-		sensorAngleValue = arduinoSensor->getRoll() + 2.9;
+		sensorAngleValue = arduinoSensor->getRoll()+1;
 	if (std::abs(sensorAngleValue - previousSensorAngleValue) < 0.15f) {
         sensorAngleValue = previousSensorAngleValue;
     }
-	appliedAngleValue=testingEnabled?testingTiltValue:int(sensorAngleValue* 10.0f) / 10.0f;
+	appliedAngleValue=testingEnabled?testingTiltValue:(int(sensorAngleValue* 10.0f) / 10.0f+1.8);
 	if (debugEnabled) 
         {
 			drawCenteredText(testingLabelRectScaled,testingLabelRectScaled.y+30,"Just for SEECS testing",section,colorSubtleText);
