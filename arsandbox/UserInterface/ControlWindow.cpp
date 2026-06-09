@@ -317,7 +317,7 @@ void ControlWindow::draw(void)
 	//Arduino loop
 	float previousSensorAngleValue = sensorAngleValue;
 	if(arduinoSensor->isActive())
-		sensorAngleValue = arduinoSensor->getRoll();
+		sensorAngleValue = arduinoSensor->getRoll() + 2.9;
 	if (std::abs(sensorAngleValue - previousSensorAngleValue) < 0.15f) {
         sensorAngleValue = previousSensorAngleValue;
     }
