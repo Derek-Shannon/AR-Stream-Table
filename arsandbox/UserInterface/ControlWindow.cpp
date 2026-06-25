@@ -803,7 +803,7 @@ double ControlWindow::getContourLineInterval(void) const
 
 float ControlWindow::getAppliedTiltValue(void) const
 	{
-	return testingEnabled?testingTiltValue:sensorAngleValue;
+	return testingEnabled?testingTiltValue:(sensorAngleValue+1.5);
 	}
 bool ControlWindow::getMaskState(void) const
 	{
