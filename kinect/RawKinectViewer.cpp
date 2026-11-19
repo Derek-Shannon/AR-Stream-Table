@@ -667,7 +667,7 @@ const char* cornerLabels[4]={"Lower-Left","Lower-Right","Upper-Left","Upper-Righ
 		   The formatted string is "(nx, ny, nz), depth" — we parse
 		   and adjust the depth value at the end. 
 		*/
-		static const double depthOffset=-18.0; // Adjust to the depth 
+		static const double depthOffset=-9.0; // Adjust to the depth 
 		std::string::size_type commaPos=formatted.rfind(',');
 		if(commaPos!=std::string::npos)
 			{

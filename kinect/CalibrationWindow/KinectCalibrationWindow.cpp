@@ -426,7 +426,7 @@ void KinectCalibrationWindow::draw(void)
 	if(bodyFont!=0)
 		XSetFont(display,graphicsContext,bodyFont->fid);
 	setColor(colorText);
-	drawTextLine(70,405, "1.  Cover the steam table (or a portion of it) with a flat piece of cardboard or other material");
+	drawTextLine(70,405, "1.  Flatten sand in corners, cover the table (or a portion of it) with a flat piece of cardboard or other material");
 	drawTextLine(70,445, "2.  Zoom in (using mouse wheel down) and pan (holding 'Z' and dragging mouse) to enlarge the depth view of the table");
 	drawTextLine(70,485, "3.  Remove ALL hands, persons, and other moving objects within the depth viewer and press the 'Average Frames' button above");
 	setColor(colorError);
